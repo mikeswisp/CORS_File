@@ -1,0 +1,868 @@
+<?php
+
+/**
+ * @file
+ * A custom widget that enables a site admin to upload a file to Cloud Container
+ * without writing the file to the Drupal site first.
+ *
+ * Credit for code found in this module should be given to Cloud Files, S3FS_CORS,
+ * and the core file module, as recipes from all three modules were used during
+ * the development of this module.
+ *
+ * @see Related modules
+ * - Cloud Files
+ * @link https://www.drupal.org/project/cloud_files
+ * - S3FS_CORSs
+ * @link https://www.drupal.org/project/s3fs_cors
+ * - File
+ * @link https://api.drupal.org/api/drupal/modules%21file%21file.module/7
+ */
+
+
+/**
+ * Implements hook_menu().
+ *
+ * @return array
+ *   Menu item array
+ */
+ function cors_file_menu() {
+
+  $items = array();
+  // Menu link to configure Rackspace settings
+  $items['admin/config/media/rackspace'] = array(
+    'title' => 'Rackpace Cloud Files Settings',
+    'description' => 'Configure settings for Rackspace Cloud Files',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('cors_file_admin'),
+    'access arguments' => array('administer site configuration'),
+    'weight' => -10,
+    'file' => 'cors_file.admin.inc',
+  );
+  // Endpoint to obtain the temporary URL
+  $items['endpoint/filename/%/type/%'] = array(
+    'title' => 'Custom Endpoint',
+    'description' => 'Generate a custom endpoint',
+    'page callback' => 'cors_file_get_endpoint',
+    'page arguments' => array(2,4),
+    'access arguments' => array('access content'),
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_libraries_info()
+ *
+ * Returns information about external libraries.
+ *
+ * @return array
+ *   php-opencloud library configuration
+ */
+ function cors_file_libraries_info() {
+
+  return array(
+    'php-opencloud' => array(
+      'name' => 'PHP OpenStack SDK',
+      'vendor url' => 'http://php-opencloud.com/',
+      'download url' => 'http://php-opencloud.com/',
+      'version arguments' => array(
+        'file' => 'vendor/rackspace/php-opencloud/lib/OpenCloud/Version.php',
+        'pattern' => "/    const VERSION = '([\d.]*)'/",
+        'lines' => 56,
+      ),
+      'files' => array(
+        'php' => array(
+          'vendor/autoload.php',
+        ),
+      ),
+    ),
+  );
+ }
+
+/**
+ * Implements hook_stream_wrappers()
+ *
+ * @return array
+ *  Returns an array that registers information about a custom stream wrapper
+ */
+ function cors_file_stream_wrappers() {
+
+  return array(
+    'rackspace' => array(
+      'name' => t('Rackspace Cloud Files'),
+      'class' => 'RackspaceStreamWrapper',
+      'description' => t('A custom stream wrapper for Rackspace Cloud Files'),
+    ),
+  );
+ }
+
+/**
+ * Utility function used to write module events to watchdog
+ *
+ * @param $message
+ *  The custom message to write to watchdog
+ */
+function _cors_file_log_events($message) {
+
+  watchdog(
+    'cors_file',
+    $message,
+    array(),
+    WATCHDOG_NOTICE,
+    $link = NULL
+  );
+}
+
+/**
+ * Utility function that prints out a JSON message to the browser
+ *
+ * @param $key
+ *  The key to be used, e.g., success or error
+ * @param $value
+ *  The message to be printed out to the browser
+ */
+ function _cors_file_display_json($key, $value) {
+
+  drupal_add_http_header('Content-Type', 'application/json; charset=utf-8');
+  print json_encode(
+    array(
+      $key => $value
+    )
+  );
+  drupal_exit();
+ }
+
+/**
+ * Implements hook_element_info()
+ *
+ * @see file_element_info()
+ *
+ * @return array
+ *  An associative array describing the element types being defined.
+ */
+ function cors_file_element_info() {
+
+  $file_path = drupal_get_path('module', 'cors_file');
+
+  $types['cors_file_upload'] = array(
+    '#input' => TRUE,
+    '#process' => array('cors_file_upload_process'),
+    '#value_callback' => 'cors_file_upload_value',
+    '#element_validate' => array('cors_file_upload_validate'),
+    '#pre_render' => array('file_managed_file_pre_render'),
+    '#theme' => 'cors_file_upload',
+    '#theme_wrappers' => array('form_element'),
+    '#upload_validators' => array(),
+    '#upload_location' => '',
+    '#size' => 22,
+    '#tree' => TRUE,
+    '#extended' => FALSE,
+    '#attached' => array(
+      'js' => array(
+        $file_path . '/js/cors_file.js',
+        drupal_get_path('module', 'file') . '/file.js',
+      ),
+    ),
+  );
+  return $types;
+ }
+
+/**
+ * Implements hook_field_widget_info()
+ *
+ * @return array
+ *  An array describing the widget types implemented by the module.
+ */
+ function cors_file_field_widget_info() {
+
+  return array(
+    'cors_file' => array(
+      'label' => t('CORS File Upload'),
+      'field types' => array('file'), // default drupal file widget
+      'behaviors' => array(
+        'multiple values' => FIELD_BEHAVIOR_CUSTOM,
+        'default value' => FIELD_BEHAVIOR_NONE,
+      ),
+      'weight' => 999,
+    ),
+  );
+ }
+
+/**
+ * Implements hook_form_alter()
+ *
+ * Used to alter field settings if the CORS File Upload widget is used.
+ * Many of these settings are for development only at this time.
+ *
+ * @param &$form
+ *  The form reference being altered
+ * @param $form_state
+ *  The current state of the form
+ * @param $form_id
+ *  String representing the name of the form itself.
+ */
+ function cors_file_form_alter(&$form, $form_state, $form_id) {
+
+  //this alteration should encompass the field settings form and the field edit form
+  if (($form_id == 'field_ui_field_settings_form' && $form['field']['type']['#value'] == 'file') ||
+    ($form_id == 'field_ui_field_edit_form' && $form['#field']['type'] == 'file') ) {
+
+    if($form['instance']['widget']['type']['#value'] == 'cors_file' ||
+      $form_state['build_info']['args'][0]['widget']['type'] == 'cors_file') {
+
+      //make sure a value is entered into the uri scheme field
+      $form['field']['settings']['uri_scheme']['#required'] = TRUE;
+
+      if (!empty(variable_get('rackspace_container'))) {
+        //add the cloud files container as an option
+        $container = variable_get('rackspace_container') . ' - (Rackspace Cloud Files)';
+        $form['field']['settings']['uri_scheme']['#options']['rackspace'] = $container;
+        $form['field']['settings']['uri_scheme']['#default_value'] = 'rackspace';
+        //remove private and public file paths
+        unset($form['field']['settings']['uri_scheme']['#options']['public']);
+        unset($form['field']['settings']['uri_scheme']['#options']['private']);
+
+        //for dev purposes restrict the number of values to 1
+        //@TODO add support for multiple file later on
+        $form['field']['cardinality']['#disabled'] = TRUE;
+        $title = 'Number of values (Locked for CORS File Support)';
+        $form['field']['cardinality']['#title'] = t($title);
+        $form['field']['cardinality']['#value'] = t('1');
+        $form['field']['cardinality']['#default_value'] = t('1');
+
+        //for dev purposes restrict the file directory option
+        //@TODO add support for file directories in a container
+        $form['instance']['settings']['file_directory']['#disabled'] = TRUE;
+        $title = 'File directory (Locked for CORS File Support)';
+        $form['instance']['settings']['file_directory']['#title'] = t($title);
+        $form['instance']['settings']['file_directory']['#value'] = t('');
+      } else {
+        //@TODO look at adding more flexible support for other location via this widget
+        drupal_set_message(t('You do not have your Rackspace Container configured'), 'error');
+        drupal_set_message(t('Setup your container <a href="/admin/config/media/rackspace">here</a>'), 'error');
+        unset($form['field']['settings']['uri_scheme']['#default_value']);
+        unset($form['field']['settings']['uri_scheme']['#options']);
+      }
+    }
+    //custom submit function
+    $form['#submit'][1] = 'cors_file_custom_field_settings_submit';
+  }
+ }
+
+/**
+ * Custom form submission function
+ *
+ * @see cors_file_form_alter()
+ *
+ * @param &$form
+ *  The form reference being submitted
+ * @param $form_state
+ *  The reference to form state being submitted
+ */
+ function cors_file_custom_field_settings_submit(&$form, &$form_state){
+
+  //ensure we are dealing with the correct conditions before altering values
+  if (isset($form_state['values']['field']['settings']['uri_scheme']) &&
+    $form_state['values']['field']['settings']['uri_scheme'] == 'rackspace') {
+    //set default values
+    $form_state['values']['instance']['settings']['file_directory'] = t('');
+    $form_state['values']['field']['cardinality'] = t('1');
+  }
+ }
+
+/**
+ * Implements hook_field_widget_form()
+ *
+ * Based upon file_field_widget_form()
+ * @see file.field.inc
+ *
+ * @param &$form
+ *  A reference to the form structure where widgets are being attached to.
+ * @param &$form_state
+ *  A reference to an associative array containing the current state of the form.
+ * @param $field
+ *  The field structure.
+ * @param $instance
+ *  The field instance.
+ * @param $langcode
+ *  The language associated with $items.
+ * @param $items
+ *  Array of default values for this field.
+ * @param $delta
+ *  The index of the current field
+ * @param $element
+ *  A form element array containing basic properties for the widget
+ *
+ * @return array
+ *  The form elements for a single widget for this field.
+ */
+ function cors_file_field_widget_form(
+  &$form, &$form_state, $field, $instance,
+  $langcode, $items, $delta, $element) {
+
+  // Based upon the idea from file.field.inc
+  $defaults = array(
+    'fid' => 0,
+    'display' => !empty($field['settings']['display_default']),
+    'description' => '',
+  );
+
+  // Load the items for form rebuilds from the field state as they might not be
+  // in $form_state['values'] because of validation limitations. Also, they are
+  // only passed in as $items when editing existing entities.
+  $field_parents = $element['#field_parents'];
+  $field_name = $field['field_name'];
+
+  $field_state = field_form_get_state($field_parents, $field_name, $langcode, $form_state);
+  if (isset($field_state['items'])) {
+    $items = $field_state['items'];
+  }
+
+  //rackspace max upload size
+  $validators = file_field_widget_upload_validators($field, $instance);
+  $max_filesize = parse_size('10G');
+
+  // If the admin has specified a smaller max size, use that.
+  if (!empty($instance['settings']['max_filesize']) &&
+      parse_size($instance['settings']['max_filesize']) < $max_filesize) {
+    $max_filesize = parse_size($instance['settings']['max_filesize']);
+  }
+  $validators['file_validate_size'] = array($max_filesize);
+
+  $element_info = element_info('cors_file_upload');
+  $element += array(
+    '#type' => 'cors_file_upload',
+    '#upload_location' => file_field_widget_uri($field, $instance),
+    '#upload_validators' => $validators,
+    '#value_callback' => 'cors_file_field_widget_value',
+    '#process' => array_merge($element_info['#process'], array('file_field_widget_process')),
+    // Allows this field to return an array instead of a single value.
+    '#extended' => TRUE,
+  );
+
+  //@TODO add the cardinality back in as support for multiple files gets developed
+  //the cardinality of the field has been removed because this is assumed to be one
+
+ // Set the default value.
+  $element['#default_value'] = $defaults;
+  if (!empty($items)) $element['#default_value'] = $items[0];
+
+  // If there's only one field, return it as delta 0.
+  if (empty($element['#default_value']['fid'])) {
+    $element['#description'] = theme(
+      'file_upload_help',
+       array(
+        'description' => $element['#description'],
+        'upload_validators' => $element['#upload_validators']
+      )
+    );
+  }
+  $elements = array($element);
+
+  // @TODO Multiple field processing
+
+  return $elements;
+ }
+
+/**
+ * This based off of a recipe in the s3fs module and the core file module
+ *  - Adding the appropriate buttons
+ *  - Adding data for field processing
+ *  - Adding default values to the field for display or processing
+ *
+ * @param $element
+ *  A form element array containing basic properties for the widget
+ * @param &$form_state
+ *  A reference to the form state
+ * @param &form
+ *  A reference to the form
+ */
+ function cors_file_upload_process($element, &$form_state, &$form) {
+
+  // set default values for values used throughout this function
+  $fid = 0;
+  $element['#file'] = FALSE;
+  $filemime = '';
+  $filesize = '';
+  $filename = '';
+  // attempt to se the value for fid
+  if (isset($element['#value']['fid'])) $fid = $element['#value']['fid'];
+  // if fid is present load up input values based upon a non-zero fid
+  // if an fid is present, it is probably safe to safe we are editing a value
+  if ($fid) {
+    $element['#file'] = file_load($fid);
+    $filename = $element['#file']->filename;
+    $filemime = $element['#file']->filemime;
+    $filesize = $element['#file']->filesize;
+
+    $element['filelink'] = array(
+      '#type' => 'markup',
+      '#markup' => theme('file_link', array('file' => $element['#file'])) . ' ',
+      '#weight' => -10,
+    );
+
+  }
+  // get the field hook
+  $parents_id = implode('_', $element['#parents']);
+
+  // get the upload directory to write the file to in Rackspace
+  if (isset($element['#upload_location'])) {
+    $upload_directory = $element['#upload_location'];
+  }
+
+  // Upload button.
+  $element['upload_button'] = array(
+    '#name' => $parents_id . '_upload_button',
+    '#type' => 'submit',
+    '#value' => t('Upload'),
+    '#validate' => array(),
+    '#limit_validation_errors' => array($element['#parents']),
+    '#attributes' => array('class' => array('cors-file-form-submit')),
+    '#weight' => -5,
+    '#submit' => array('cors_file_upload_submit'),
+    '#ajax' => array(
+      'callback' => 'cors_file_upload_js',
+      'wrapper' => $element['#id'] . '-ajax-wrapper',
+      'method' => 'replace',
+      'effect' => 'fade',
+    ),
+  );
+
+  // Remove button.
+  $element['remove_button'] = array(
+    '#name' => $parents_id . '_remove_button',
+    '#type' => 'submit',
+    '#value' => t('Remove'),
+    '#validate' => array(),
+    '#limit_validation_errors' => array($element['#parents']),
+    '#attributes' => array('class' => array('cors-file-form-remove')),
+    '#weight' => -5,
+    '#submit' => array('cors_file_upload_remove_submit'),
+    '#ajax' => array(
+      'callback' => 'cors_file_upload_js',
+      'wrapper' => $element['#id'] . '-ajax-wrapper',
+      'method' => 'replace',
+      'effect' => 'fade',
+    ),
+  );
+
+  // The file upload field
+  $element['upload'] = array(
+    '#name' => 'files[' .$parents_id. ']',
+    '#type' => 'file',
+    '#title' => t('Choose a file.'),
+    '#title_display' => 'invisible',
+    '#size' => $element['#size'],
+    '#theme_wrappers' => array(),
+    '#weight' => -10,
+    '#attributes' => array('class' => array('cors-file-upload-file')),
+  );
+
+
+  // Great idea to add client side validation for the extension list
+  if (isset($element['#upload_validators']['file_validate_extensions'][0])) {
+    $list = $element['#upload_validators']['file_validate_extensions'][0];
+    $extension_list = str_replace(' ', ',', $list);
+
+    $element['upload']['#attached']['js'] = array(
+      array(
+        'type' => 'setting',
+        'data' => array(
+          'file' => array(
+            'elements' => array(
+              '#' .$element['#id'] . '-upload' => $extension_list
+            )
+          )
+        ),
+      ),
+    );
+  }
+
+
+  // Hidden elements to be populated by JavaScript after the file is uploaded
+  $element['fid'] = array(
+    '#type' => 'hidden',
+    '#value' => $fid,
+    '#attributes' => array('class' => array('fid')),
+  );
+  $element['filename'] = array(
+    '#type' => 'hidden',
+    '#default_value' => $filename,
+    '#attributes' => array('class' => array('filename')),
+    '#markup' => '',
+  );
+  $element['filemime'] = array(
+    '#type' => 'hidden',
+    '#attributes' => array('class' => array('filemime')),
+    '#default_value' => $filemime ,
+  );
+  $element['filesize'] = array(
+    '#type' => 'hidden',
+    '#attributes' => array('class' => array('filesize')),
+    '#default_value' => $filesize,
+  );
+
+  $element['#prefix'] = '<div id="' . $element['#id'] . '-ajax-wrapper">';
+  $element['#suffix'] = '</div>';
+
+  return $element;
+ }
+
+/**
+ * This is based off of a recipe in the s3fs module and the core file module
+ *
+ * Value callback for cors_file_upload element type.
+ * A function that implements how user input is mapped to an element's #value property
+ *
+ * @see cors_file_field_widget_value()
+ * @see cors_file_element_info()
+ *
+ * @param &$element
+ *  The element reference being submitted or processed
+ * @param $input
+ *  The input of the element being submitted or processed
+ * @param $form_state
+ *  The state of the form during the time of submission or processing
+ *
+ * @return array
+ *  Contains information about the current or future file
+ */
+ function cors_file_upload_value(&$element, $input = FALSE, $form_state = NULL) {
+
+  global $user;
+  $fid = 0;
+  $remove_button_clicked = FALSE;
+  $return = array();
+
+  $parents = $element['#parents'];
+  $parents_id = implode('_', $parents);
+
+
+  // Make sure we are saving the full node form
+  if (!empty($input['fid'])) {
+    return $input;
+  }
+
+  // Detect if the remove button was click
+  if (isset($form_state['input']['_triggering_element_name']) &&
+      $form_state['input']['_triggering_element_name'] == $parents_id .'_remove_button') {
+    $remove_button_clicked = TRUE;
+  }
+
+  // Detect if there is input being sumitted, an fid and the remove button has not
+  // been click.  This is where we process the submitted data and save if as a
+  // managed file.  This will enable us to delete a remote file in the stream wrapper
+  if ($input !== FALSE && $fid == 0 && !empty($input['filename']) && !$remove_button_clicked) {
+    $return = $input;
+
+    $base_dir = '';
+    if (isset($element['#upload_location']) &&
+      file_uri_target($element['#upload_location']) != '') {
+      $base_dir = file_uri_target($element['#upload_location']) . '/';
+    }
+    // Create a file object
+    $file = new stdClass();
+    $file->fid = NULL;
+    $file->uid = $user->uid;
+    $file->filename = $input['filename'];
+    $file->filesize = $input['filesize'];
+    $file->filemime = $input['filemime'];
+    $file->uri = 'rackspace://' .$base_dir .$input['filename'];
+    $file->status = 1;
+    $file->type = _cors_file_get_endpoint($input['filename']);
+    $file->timestamp = REQUEST_TIME;
+
+    // Attempt to wtite the file managed record and notify all the needed hooks
+    try {
+      // Save the uploaded file to the file_managed table.
+      $wrapper = new RackspaceStreamWrapper();
+      $file = $wrapper->add_file($file);
+      $return['fid'] = $file->fid;
+
+    } catch (Exception $e) {
+      _cors_file_log_events($e->getMessage());
+    }
+  }
+
+  // Set the default value for our field if the form is being processed
+  // Set the value back to the default value if the remove button has been clicked
+  if ($input === FALSE || $remove_button_clicked) {
+    // Set initial values
+    $default_fid = 0; $return = array('fid' => 0);
+
+    if ($element['#extended']) {
+      $default_fid = $element['#default_value']['fid'];
+      $return = $element['#default_value'];
+    } else {
+      $default_fid = $element['#default_value'];
+      $return = array('fid' => 0);
+    }
+
+    // Confirm that the file exists when used as a default value.
+    if ($default_fid && $file = file_load($default_fid)) {
+      $return['fid'] = $file->fid;
+    }
+    else {
+      $return['fid'] = $fid;
+    }
+  }
+
+  return $return;
+ }
+
+
+/**
+ * This module is used as a part of the default recipe in the file module
+ * The reason we are implementing it here is so we can call our local
+ * version of cors_file_upload_value() to process the submitted or default
+ * values instead of letting core do it.
+ *
+ * Based upon file_field_widget_value()
+ * @see file.field.inc
+ *
+ * @param &$element
+ *  The element reference being submitted or processed
+ * @param $input
+ *  The input of the element being submitted or processed
+ * @param $form_state
+ *  The state of the form during the time of submission or processing
+ *
+ * @return array
+ *  Contains information about the current or future file
+ */
+ function cors_file_field_widget_value($element, $input = FALSE, $form_state) {
+
+  if ($input) {
+    // If the display field is present make sure its unchecked value is saved.
+    $field = field_widget_field($element, $form_state);
+    if (empty($input['display'])) {
+      $input['display'] = $field['settings']['display_field'] ? 0 : 1;
+    }
+  }
+
+  // Handle uploads and the like.
+  $return = cors_file_upload_value($element, $input, $form_state);
+
+  // Ensure that all the required properties are returned, even if empty.
+  $return += array(
+    'fid' => 0,
+    'display' => 1,
+    'description' => '',
+  );
+  return $return;
+ }
+
+/**
+ * Implementation of file_managed_file_validate() to validate a managed file
+ * Based upon validation found in file_managed_file_validate()
+ *
+ * @see file.module
+ * @see cors_file_element_info()
+ *
+ * @param &$element
+ *  The element being validated
+ * @param &$form_state
+ *  The state of the form during validation
+ */
+ function cors_file_upload_validate(&$element, &$form_state) {
+
+  // Consolidate the array value of this field to a single FID.
+  if (!$element['#extended']) {
+    form_set_value($element, $element['fid']['#value'], $form_state);
+  }
+ }
+
+/**
+ * Callback to remove the triggering element from the form
+ * Taken directly from the s3fs_cors module
+ *
+ * @param $form
+ *  The form that is be altered
+ * @param &$form_state
+ *  A reference to the form state being altered
+ *
+ * @return array
+ *  Array value of the field minus the button that was juck clicked
+ */
+ function cors_file_upload_js($form, &$form_state) {
+
+  // Find the element that triggered the AJAX callback and return it so that it
+  // can be replaced.
+  $parents = $form_state['triggering_element']['#array_parents'];
+  $button_key = array_pop($parents);
+  $element = drupal_array_get_nested_value($form, $parents);
+
+  return $element;
+ }
+
+
+/**
+ * Submit callback for the remove button on the cors_file_upload
+ *
+ * This function delete a managed file in Drupal and the actual file in the
+ * Cloud Container using our Stream Wrapper.
+ *
+ * @param $form
+ *  The form being altered
+ * @param &$form_state
+ *  A reference to the state of the form being altered
+ */
+ function cors_file_upload_remove_submit($form, &$form_state) {
+  $parents = $form_state['triggering_element']['#array_parents'];
+  // Drop the button_key value off the end of the parents array, since we don't need it.
+  array_pop($parents);
+  $element = drupal_array_get_nested_value($form, $parents);
+
+
+  if ($element['#file'] && $element['#file']->status == 1) {
+
+    try {
+      // Save the uploaded file to the file_managed table.
+      $wrapper = new RackspaceStreamWrapper();
+      $wrapper->unlink($element['#file']->uri);
+
+    } catch (Exception $e) {
+      _cors_file_log_events($e->getMessage());
+    }
+
+  }
+  // Update both $form_state['values'] and $form_state['input'] to reflect
+  // that the file has been removed, so that the form is rebuilt correctly.
+  $values_element = $element['#extended'] ? $element['fid'] : $element;
+  form_set_value($values_element, NULL, $form_state);
+  drupal_array_set_nested_value($form_state['input'], $values_element['#parents'], NULL);
+
+  // Set the form to rebuild so that $form is correctly updated in response to
+  // processing the file removal.
+  $form_state['rebuild'] = TRUE;
+
+ }
+
+/**
+ * Submit callback for the upload button on cors_file_upload element.
+ * Taken directly from the s3fs_cors module
+ *
+ * @param $form
+ *  The form being altered
+ * @param &$form_state
+ *  A reference to the state of the form being altered
+ */
+function cors_file_upload_submit($form, &$form_state) {
+  // We choose to always rebuild, to keep the form processing
+  // workflow consistent between the two buttons.
+  $form_state['rebuild'] = TRUE;
+}
+
+
+/**
+ * Utility function used to get a token and a temporary endpoint from Rackspace
+ *
+ * @param $filename
+ *  The name of the file
+ * @param $extension
+ *  The extension of the file
+ *
+ * @return string
+ *  A temporary Rackspace endpoint URL
+ */
+ function cors_file_get_endpoint($filename, $extension) {
+
+  $file_extensions = array('jpg', 'png', 'mp4', 'pdf');
+  //validate the incoming data
+  if (empty($filename) || empty($extension)) {
+    _rackspace_cors_upload_display_json('error', 'Invalid Arguments');
+  } else if (!in_array($extension, $file_extensions)){
+    _rackspace_cors_upload_display_json('error', 'Invalid Extension');
+  }
+
+  //ensure the open cloud library is loaded and generate the endpoint
+  $info = libraries_load('php-opencloud');
+  if ($info['loaded']) {
+    try {
+      //for development only
+      $issue_log = '';
+      //get the current protocol and domain
+      $protocol = 'http://';
+      if (strtolower(substr($_SERVER["SERVER_PROTOCOL"], 0, 5)) =='https')
+        $protocol = 'https://';
+      $domain = $protocol . $_SERVER['HTTP_HOST'];
+
+      //declare a new client
+      $client = new OpenCloud\Rackspace(
+        variable_get('rackspace_auth_url'),
+        array(
+         'username' => variable_get('rackspace_username'),
+         'apiKey' => variable_get('rackspace_api_key'),
+        )
+      );
+      //authenticate the client
+      $client->authenticate();
+
+      //Rackspace Object Store Service Instantiation
+      //http://docs.php-opencloud.com/en/latest/services/object-store/index.html
+      $service  = $client->objectStoreService(
+        null,
+        variable_get('rackspace_region'),
+        'publicURL'
+      );
+
+      //get a container using the saved container
+      $container = $service->getContainer(
+        variable_get('rackspace_container')
+      );
+
+      //update the container headers for CORS
+      $container->saveMetadata(
+        array(
+          'access-control-allow-origin' => $domain,
+        )
+      );
+      //FOR DEVELOPMENT ONLY
+      //$data = $container->getMetadata();
+      //print '<pre>'.var_dump($data) . '</pre>';
+
+      //create a new object to set our filename and create temp URL
+      $object =  $container->dataObject();
+      //create a file with this object using the passed in data
+      $object->setName($filename . '.' . $extension);
+      //get a temporary endpoint for one hour and return it
+      $temp_url = $object->getTemporaryUrl(3000, "PUT");
+      //print out a JSON message with the temp URL
+      _cors_file_display_json('success', $temp_url);
+
+    } catch (Exception $e) {
+      _cors_file_log_events($e->getMessage());
+      _cors_file_display_json('error', $e->getMessage());
+    }
+  } else {
+    _cors_file_display_json('error', 'Library could not be loaded');
+  }
+ }
+
+/**
+ * Utility function to process the type of file that is being saved
+ * in the file_managed table.
+ *
+ * @TODO This module may need to go away as we cannot account for all file types
+ *
+ * @param $filename
+ *  The name of the file to make a detection on
+ *
+ * @return string
+ *  The type of file that was determined based upon the file name
+ */
+ function _cors_file_get_endpoint($filename) {
+  $extension = pathinfo($filename);
+  $image = array('png', 'PNG', 'jpg', 'JPG', 'JPEG', 'gif');
+  $doc = array('doc', 'pdf', 'PDF', 'docx', 'xls',
+               'xlsx', 'cvs', 'zip', 'tar', 'gzip');
+  $video = array('mp4', 'mov', 'wmv');
+  if (in_array($extension, $image)) {
+    return 'image';
+  } else if (in_array($extension, $doc)) {
+    return 'document';
+  } else if (in_array($extension, $video)) {
+    return 'video';
+  } else {
+    return 'undefined';
+  }
+ }

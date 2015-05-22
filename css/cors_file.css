@@ -1,0 +1,15 @@
+/**
+ * @file
+ * Stylesheet for our custome fields
+ */
+
+
+#cors-file-preparing{
+  width:300px;
+  background-color: #fff;
+  display: inline-block;
+}
+
+#cors-file-preparing p{
+  color:#000;
+}

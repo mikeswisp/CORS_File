@@ -1,0 +1,27 @@
+<?php
+/**
+ * @file
+ * Install and uninstall functions for the cors_file module.
+ */
+
+
+/**
+ * Implement hook_enable()
+ * Displays a message to the users that the module was installed successfully
+ */
+ function cors_file_enable(){
+  drupal_set_message(t('CORS File module was successfully enabled.'), 'status');
+ }
+
+/**
+ * Implements hook_uninstall()
+ * Deletes the module defined variables
+ */
+ function cors_file_uninstall() {
+  variable_del('rackspace_username');
+  variable_del('rackspace_api_key');
+  variable_del('rackspace_container');
+  variable_del('rackspace_auth_url');
+  variable_get('rackspace_region');
+  variable_get('rackspace_domain');
+ }

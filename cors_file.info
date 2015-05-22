@@ -1,0 +1,12 @@
+name = CORS File
+description = Provides a field to upload a file directly to Rackspace Cloud Files and keep that file managed by Drupal.
+
+core = 7.x
+package = Media
+dependencies[] = jquery_update
+dependencies[] = libraries
+
+files[] = cors_file.inc
+files[] = cors_file.module
+scripts[] = js/cors_file.js
+stylesheets[all][] = css/cors_file.css
