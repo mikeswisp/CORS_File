@@ -27,6 +27,10 @@ php composer.phar require rackspace/php-opencloud
 *  jQuery 1.5+
 *  IE 10+
 
+## Known Limitations
+* Currently, the field only supports one file being uploaded at a time.
+* All uploaded files are stored in the base directory of the container and preset directories are not yet supported.
+
 ## Credits
 Recipes, ideas, and functions for this module are based upon the files module, file.inc, stream_wrappers.inc, and the following contrib modules:
 * [Cloud Files](https://www.drupal.org/project/cloud_files)
