@@ -211,8 +211,8 @@ function _cors_file_log_events($message) {
 
       //make sure a value is entered into the uri scheme field
       $form['field']['settings']['uri_scheme']['#required'] = TRUE;
-
-      if (!empty(variable_get('rackspace_container'))) {
+      $container = variable_get('rackspace_container');
+      if (!empty($container)) {
         //add the cloud files container as an option
         $container = variable_get('rackspace_container') . ' - (Rackspace Cloud Files)';
         $form['field']['settings']['uri_scheme']['#options']['rackspace'] = $container;
@@ -500,6 +500,8 @@ function _cors_file_log_events($message) {
     '#attributes' => array('class' => array('filesize')),
     '#default_value' => $filesize,
   );
+
+  $form['#attributes'] = array('class' => array('cors-upload-form'));
 
   $element['#prefix'] = '<div id="' . $element['#id'] . '-ajax-wrapper">';
   $element['#suffix'] = '</div>';

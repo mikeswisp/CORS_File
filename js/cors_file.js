@@ -8,22 +8,22 @@
   RackspaceCF = {};
   Drupal.behaviors.RackspaceCF = {};
 
-  RackspaceCF.upload_file = function(file_input, button_name) {
+  RackspaceCF.upload_file = function($file_input, button_name) {
 
-    var form = file_input.closest('form'),
-    widget = file_input.parent(),
+    var form = $file_input.closest('form'),
+    widget = $file_input.parent(),
     file_real = null,
-    file_obj = file_input[0].files[0],
+    file_obj = $file_input[0].files[0],
     $progress_message = $('<div id="cors-file-preparing"><p>Uploading File...</p></div>'),
     endpoint_url, file,
     $progress_bar = $('<div id="progress-bar" class="progress"><div class="progress-bar"></div></div>');
 
     // Don't do anything if the <input> is empty.
-    if (!file_input.val()) {
+    if (!$file_input.val()) {
       return;
     }
 
-    if (file_input[0].files === undefined || window.FormData === undefined) {
+    if ($file_input[0].files === undefined || window.FormData === undefined) {
       // If we're in IE8/9, or the FormData API is unavailable, fall back to
       alert('CORS Upload is not supported in IE8 or 9.');
       return;
@@ -34,7 +34,7 @@
     form.find('input[type="submit"]').attr('disabled', 'disabled');
 
     // Replace the file <input> with our progress bar.
-    file_input.hide().after($progress_message);
+    $file_input.hide().after($progress_message);
     // Add the actual progress bar
     $('.form-type-cors-file-upload .description').prepend($progress_bar);
 
@@ -75,7 +75,7 @@
 
      // Undoes the form alterations we made.
     function form_cleanup() {
-      file_input.show();
+      $file_input.show();
       $progress_message.remove();
       $progress_bar.remove();
       form.find('input[type="submit"]').removeAttr('disabled');
@@ -89,11 +89,13 @@
       widget.find('input.filesize').val(file_obj.size);
       widget.find('input.filename').val(file_real);
 
-      form.unbind('submit');
+      form.find('input[type="submit"]').removeAttr('disabled');
+      var button_id = widget.find('input.cors-file-form-submit').attr('id');
 
-      console.log(button_name);
-      $input = $('<input name="op" value="' + button_name+ '" />');
-      form.append($input).submit();
+      var ajax = Drupal.ajax[button_id];
+      // Remove the file itself from the form, to avoid sending it to Drupal.
+      $(ajax.form[0]).find('#' + $file_input.attr('id')).remove();
+      ajax.form.ajaxSubmit(ajax.options);
     }
   };
 
@@ -118,7 +120,7 @@
    */
   Drupal.behaviors.RackspaceCF.attach = function(context, settings) {
     var ajax_upload_button = $('input.cors-file-form-submit', context);
-
+    console.log(ajax_upload_button);
     // Attach the click function only once
     ajax_upload_button.once('cors_file_upload', function(){
       // Prevent Drupal's AJAX file upload code from running.
@@ -126,10 +128,12 @@
 
       ajax_upload_button.one('click', function(e) {
         e.preventDefault();
-        var file_input = $(this).siblings('input.form-file');
-        RackspaceCF.upload_file(file_input, ajax_upload_button.attr('name'));
+        var file_input = $(this).siblings('input.cors-file-upload-file');
+        RackspaceCF.upload_file(file_input, 0, ajax_upload_button.attr('name'));
       });
+
     });
 
   };
+
 })(jQuery);
