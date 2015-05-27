@@ -10,12 +10,13 @@
 
   RackspaceCF.upload_file = function($file_input, button_name) {
 
-    var form = $file_input.closest('form'),
-    widget = $file_input.parent(),
+    var $form = $file_input.closest('form'),
+    $widget = $file_input.parent(),
     file_real = null,
     file_obj = $file_input[0].files[0],
     $progress_message = $('<div id="cors-file-preparing"><p>Uploading File...</p></div>'),
-    endpoint_url, file,
+    endpoint_url = '',
+    file = file_obj.name.split('.'),
     $progress_bar = $('<div id="progress-bar" class="progress"><div class="progress-bar"></div></div>');
 
     // Don't do anything if the <input> is empty.
@@ -31,15 +32,13 @@
     // Disable all the submit buttons, so users can't accidentally mess
     // up the workflow. We'll submit the form via JS after file uploads
     // are complete.
-    form.find('input[type="submit"]').attr('disabled', 'disabled');
+    $form.find('input[type="submit"]').attr('disabled', 'disabled');
 
-    // Replace the file <input> with our progress bar.
+    // Replace the file input with a bootstrap style progress bar
     $file_input.hide().after($progress_message);
     // Add the actual progress bar
     $('.form-type-cors-file-upload .description').prepend($progress_bar);
 
-    //get the file name and the file extension
-    file = file_obj.name.split('.');
     // Create the endpoint URL to generate the temporary URL
     endpoint_url = '/endpoint/filename/' + file[0] + '/type/' + file[1];
     // POST to drupal to get our temporary URL
@@ -61,7 +60,9 @@
             processData: false,
             xhr: RackspaceCF.progress,
             error: function(jqXHR, textStatus, errorThrown) {
+              //alert the user that something went wrong
               alert(errorThrown);
+              //clean up the form if the error was thrown
               form_cleanup();
             },
             complete: submit_to_drupal
@@ -78,19 +79,20 @@
       $file_input.show();
       $progress_message.remove();
       $progress_bar.remove();
-      form.find('input[type="submit"]').removeAttr('disabled');
+      $form.find('input[type="submit"]').removeAttr('disabled');
     }
 
     // Attaches the needed data on successful response of Rackspace PUT request
     // and submits the form to Drupal
     function submit_to_drupal(data, textStatus, jqXHR) {
-      // Update the metadata fields for the file we just uploaded.
-      widget.find('input.filemime').val(file_obj.type);
-      widget.find('input.filesize').val(file_obj.size);
-      widget.find('input.filename').val(file_real);
 
-      form.find('input[type="submit"]').removeAttr('disabled');
-      var button_id = widget.find('input.cors-file-form-submit').attr('id');
+      // Update the hidden fields for the file that was just uploaded.
+      $widget.find('input.filemime').val(file_obj.type);
+      $widget.find('input.filesize').val(file_obj.size);
+      $widget.find('input.filename').val(file_real);
+
+      $form.find('input[type="submit"]').removeAttr('disabled');
+      var button_id = $widget.find('input.cors-file-form-submit').attr('id');
 
       var ajax = Drupal.ajax[button_id];
       // Remove the file itself from the form, to avoid sending it to Drupal.
@@ -120,7 +122,6 @@
    */
   Drupal.behaviors.RackspaceCF.attach = function(context, settings) {
     var ajax_upload_button = $('input.cors-file-form-submit', context);
-    console.log(ajax_upload_button);
     // Attach the click function only once
     ajax_upload_button.once('cors_file_upload', function(){
       // Prevent Drupal's AJAX file upload code from running.

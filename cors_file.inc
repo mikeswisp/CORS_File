@@ -48,6 +48,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    *   A string containing the URI that should be used for this instance.
    */
   public function setUri($uri) {
+
     $this->uri = $uri;
   }
 
@@ -58,6 +59,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    *   Returns the current URI of the instance.
    */
   public function getUri() {
+
     return $this->uri;
   }
 
@@ -71,6 +73,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    *   Returns a string representing a filename of the target.
    */
   protected function getTarget($uri = NULL) {
+
     if (!isset($uri)) {
       $uri = $this->uri;
     }
@@ -118,6 +121,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    *   Returns a string containing a web accessible URL for the resource.
    */
   public function getExternalUrl() {
+
     $target = file_uri_target($this->uri);
     $url = 'http://' . variable_get('rackspace_domain') . '/' . $target;
     return $url;
@@ -136,6 +140,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    */
 
   public function chmod($mode) {
+
     return TRUE;
   }
 
@@ -146,6 +151,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    *  Returns a path name with the stream wrapper reference
    */
   public function realpath() {
+
     return 'rackspace://' . $this->getLocalPath();
   }
 
@@ -160,6 +166,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    *   Returns the target of the URI.
    */
   protected function getLocalPath($uri = NULL) {
+
     if (!isset($uri)) {
       $uri = $this->uri;
     }
@@ -187,6 +194,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    *
    */
   public function stream_open($uri, $mode, $options, &$opened_path) {
+
     return TRUE;
   }
 
@@ -209,6 +217,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    *   Always returns TRUE at the present time. (no support)
    */
   public function stream_lock($operation) {
+
     return FALSE;
   }
 
@@ -224,6 +233,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    *   The string that was read, or FALSE in case of an error.
    */
   public function stream_read($count) {
+
     // If the data is empty, get the data from the object.
     // This stores all the data in the $streamData property, only request once.
     if (!$this->stream_data) {
@@ -255,6 +265,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    *   The number of bytes written (integer).
    */
   public function stream_write($data) {
+
     return FALSE;
   }
 
@@ -270,6 +281,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    */
 
   public function stream_eof() {
+
     return TRUE;
   }
 
@@ -290,6 +302,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    *
    */
   public function stream_seek($offset, $whence) {
+
     return FALSE;
   }
 
@@ -305,6 +318,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    *
    */
   public function stream_flush() {
+
     return TRUE;
   }
 
@@ -320,6 +334,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    *
    */
   public function stream_tell() {
+
     return $this->stream_pointer;
   }
 
@@ -335,6 +350,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    * Adopted from the remote_stream_wrapper contrib module
    */
   public function stream_stat() {
+
     $stat = array();
     // Make sure the request comes from an external source
     $path = $this->getExternalUrl();
@@ -400,6 +416,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    *   TRUE if stream was successfully closed.
    */
   public function stream_close() {
+
     return FALSE;
   }
 
@@ -433,8 +450,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
       // Delete by name, without fetching the object.
       $obj->setName($target);
       $deleted = $obj->delete();
-    }
-    catch (NoSuchObjectException $e) {
+    } catch (NoSuchObjectException $e) {
       $doesnotexist = TRUE;
     }
 
@@ -462,6 +478,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    *   TRUE if file was successfully renamed.
    */
   public function rename($from_uri, $to_uri) {
+
     return FALSE;
   }
 
@@ -478,6 +495,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    *   for a description of this array.
    */
   public function url_stat($uri, $flags) {
+
     $this->uri = $uri;
     if ($flags & STREAM_URL_STAT_QUIET) {
       return @$this->stream_stat();
@@ -500,6 +518,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    */
 
   public function dirname($uri = NULL) {
+
     list($scheme, $target) = explode('://', $uri, 2);
     $target  = $this->getTarget($uri);
     $dirname = dirname($target);
@@ -529,6 +548,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    *
    */
   public function mkdir($uri, $mode, $options) {
+
     return FALSE;
   }
 
@@ -549,6 +569,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    *
    */
   public function rmdir($uri, $options) {
+
     return FALSE;
   }
 
@@ -569,6 +590,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    *
    */
   public function dir_opendir($uri, $options) {
+
     return FALSE;
   }
 
@@ -583,6 +605,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    *   The next filename, or FALSE if there are no more files in the directory.
    */
   public function dir_readdir() {
+
     return FALSE;
   }
 
@@ -597,6 +620,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    *   TRUE on success.
    */
   public function dir_rewinddir() {
+
     return FALSE;
   }
 
@@ -612,6 +636,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    *
    */
   public function dir_closedir() {
+
     return FALSE;
   }
 
@@ -623,6 +648,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    *   Returns full URL to a Rackspace Cloud Files domain.
    */
   public function getDirectoryPath() {
+
     return "http://" . variable_get('rackspace_domain');
   }
 
@@ -681,6 +707,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    *   An array containing the file info (uri, filemime, and filesize).
    */
   public function get_file_info($uri) {
+
     $query = db_select('file_managed', 'f');
     $query->condition('uri', $uri);
     $query->fields('f', array('uri', 'filemime', 'filesize'));
