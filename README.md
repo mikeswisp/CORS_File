@@ -30,7 +30,6 @@ php composer.phar require rackspace/php-opencloud
 ## Known Limitations
 * Currently, the field only supports one file being uploaded at a time.
 * All uploaded files are stored in the base directory of the container. Preset directories inside the container are not yet supported.
-* Media Support has not been tested.
 
 ## Credits
 Recipes, ideas, and functions for this module are based upon the files module, file.inc, stream_wrappers.inc, and the following contrib modules:
