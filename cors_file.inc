@@ -123,7 +123,18 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function getExternalUrl() {
 
     $target = file_uri_target($this->uri);
-    $url = 'http://' . variable_get('rackspace_domain') . '/' . $target;
+    $domain = variable_get('rackspace_domain');
+
+    // Check for http or https in the domain
+    // If the protocol is not found add http://
+    if (strpos($domain, 'http://') !== FALSE) {
+      $url = $domain . '/' . $target;
+    } else if (strpos($domain, 'https://') !== FALSE) {
+      $url = $domain . '/' . $target;
+    } else {
+      $url = 'http://' . $domain . '/' . $target;
+    }
+
     return $url;
   }
 
@@ -526,6 +537,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
     if ($dirname == '.') {
       $dirname = '';
     }
+
     return $scheme . '://' . $dirname;
   }
 

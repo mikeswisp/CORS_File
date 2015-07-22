@@ -206,45 +206,48 @@ function _cors_file_log_events($message) {
   if (($form_id == 'field_ui_field_settings_form' && $form['field']['type']['#value'] == 'file') ||
     ($form_id == 'field_ui_field_edit_form' && $form['#field']['type'] == 'file') ) {
 
-    if($form['instance']['widget']['type']['#value'] == 'cors_file' ||
-      $form_state['build_info']['args'][0]['widget']['type'] == 'cors_file') {
+    // Make sure the #value is setup before we check if it is set to cors_file
+    if (isset($form['instance']['widget']['type']['#value'])) {
+      if ($form['instance']['widget']['type']['#value'] == 'cors_file' ||
+        $form_state['build_info']['args'][0]['widget']['type'] == 'cors_file') {
 
-      //make sure a value is entered into the uri scheme field
-      $form['field']['settings']['uri_scheme']['#required'] = TRUE;
-      $container = variable_get('rackspace_container');
-      if (!empty($container)) {
-        //add the cloud files container as an option
-        $container = variable_get('rackspace_container') . ' - (Rackspace Cloud Files)';
-        $form['field']['settings']['uri_scheme']['#options']['rackspace'] = $container;
-        $form['field']['settings']['uri_scheme']['#default_value'] = 'rackspace';
-        //remove private and public file paths
-        unset($form['field']['settings']['uri_scheme']['#options']['public']);
-        unset($form['field']['settings']['uri_scheme']['#options']['private']);
+        //make sure a value is entered into the uri scheme field
+        $form['field']['settings']['uri_scheme']['#required'] = TRUE;
+        $container = variable_get('rackspace_container');
+        if (!empty($container)) {
+          //add the cloud files container as an option
+          $container = variable_get('rackspace_container') . ' - (Rackspace Cloud Files)';
+          $form['field']['settings']['uri_scheme']['#options']['rackspace'] = $container;
+          $form['field']['settings']['uri_scheme']['#default_value'] = 'rackspace';
+          //remove private and public file paths
+          unset($form['field']['settings']['uri_scheme']['#options']['public']);
+          unset($form['field']['settings']['uri_scheme']['#options']['private']);
 
-        //for dev purposes restrict the number of values to 1
-        //@TODO add support for multiple file later on
-        $form['field']['cardinality']['#disabled'] = TRUE;
-        $title = 'Number of values (Locked for CORS File Support)';
-        $form['field']['cardinality']['#title'] = t($title);
-        $form['field']['cardinality']['#value'] = t('1');
-        $form['field']['cardinality']['#default_value'] = t('1');
+          //for dev purposes restrict the number of values to 1
+          //@TODO add support for multiple file later on
+          $form['field']['cardinality']['#disabled'] = TRUE;
+          $title = 'Number of values (Locked for CORS File Support)';
+          $form['field']['cardinality']['#title'] = t($title);
+          $form['field']['cardinality']['#value'] = t('1');
+          $form['field']['cardinality']['#default_value'] = t('1');
 
-        //for dev purposes restrict the file directory option
-        //@TODO add support for file directories in a container
-        $form['instance']['settings']['file_directory']['#disabled'] = TRUE;
-        $title = 'File directory (Locked for CORS File Support)';
-        $form['instance']['settings']['file_directory']['#title'] = t($title);
-        $form['instance']['settings']['file_directory']['#value'] = t('');
-      } else {
-        //@TODO look at adding more flexible support for other location via this widget
-        drupal_set_message(t('You do not have your Rackspace Container configured'), 'error');
-        drupal_set_message(t('Setup your container <a href="/admin/config/media/rackspace">here</a>'), 'error');
-        unset($form['field']['settings']['uri_scheme']['#default_value']);
-        unset($form['field']['settings']['uri_scheme']['#options']);
+          //for dev purposes restrict the file directory option
+          //@TODO add support for file directories in a container
+          $form['instance']['settings']['file_directory']['#disabled'] = TRUE;
+          $title = 'File directory (Locked for CORS File Support)';
+          $form['instance']['settings']['file_directory']['#title'] = t($title);
+          $form['instance']['settings']['file_directory']['#value'] = t('');
+        } else {
+          //@TODO look at adding more flexible support for other location via this widget
+          drupal_set_message(t('You do not have your Rackspace Container configured'), 'error');
+          drupal_set_message(t('Setup your container <a href="/admin/config/media/rackspace">here</a>'), 'error');
+          unset($form['field']['settings']['uri_scheme']['#default_value']);
+          unset($form['field']['settings']['uri_scheme']['#options']);
+        }
       }
+      //custom submit function
+      $form['#submit'][1] = 'cors_file_custom_field_settings_submit';
     }
-    //custom submit function
-    $form['#submit'][1] = 'cors_file_custom_field_settings_submit';
   }
  }
 
@@ -613,7 +616,7 @@ function _cors_file_log_events($message) {
 
 
 /**
- * This module is used as a part of the default recipe in the file module
+ * This function is used as a part of the default recipe in the file module
  * The reason we are implementing it here is so we can call our local
  * version of cors_file_upload_value() to process the submitted or default
  * values instead of letting core do it.
@@ -852,16 +855,19 @@ function _cors_file_log_events($message) {
  *  The type of file that was determined based upon the file name
  */
  function _cors_file_get_endpoint($filename) {
+  // Get the file extension
   $extension = pathinfo($filename);
+  // Define common image, doc, and video extensions
   $image = array('png', 'PNG', 'jpg', 'JPG', 'JPEG', 'gif');
   $doc = array('doc', 'pdf', 'PDF', 'docx', 'xls',
                'xlsx', 'cvs', 'zip', 'tar', 'gzip');
   $video = array('mp4', 'mov', 'wmv');
-  if (in_array($extension, $image)) {
+  // Detect which extension we are dealing with
+  if (in_array($extension['extension'], $image)) {
     return 'image';
-  } else if (in_array($extension, $doc)) {
+  } else if (in_array($extension['extension'], $doc)) {
     return 'document';
-  } else if (in_array($extension, $video)) {
+  } else if (in_array($extension['extension'], $video)) {
     return 'video';
   } else {
     return 'undefined';
