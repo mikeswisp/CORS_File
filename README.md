@@ -33,7 +33,7 @@ php composer.phar require rackspace/php-opencloud
 
 ## Development Roadmap
 * Add predefined directy support.
-* Stabalize the stream wrapper.
+
 
 ## Credits
 Recipes, ideas, and functions for this module are based upon the files module, file.inc, stream_wrappers.inc, and the following contrib modules:
