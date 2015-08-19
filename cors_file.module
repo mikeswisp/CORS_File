@@ -324,6 +324,8 @@ function _cors_file_log_events($message) {
   $validators = file_field_widget_upload_validators($field, $instance);
   $max_filesize = parse_size('10G');
 
+
+
   // If the admin has specified a smaller max size, use that.
   if (!empty($instance['settings']['max_filesize']) &&
       parse_size($instance['settings']['max_filesize']) < $max_filesize) {
@@ -480,6 +482,14 @@ function _cors_file_log_events($message) {
     );
   }
 
+  // Set the file extensions to be validated later when requesting a URL
+  $extensions_variable_list = variable_get('file_extensions');
+  if ($extensions_variable_list == NULL) {
+    if (isset($element['#upload_validators']['file_validate_extensions'][0])) {
+      $extensions_variable_list = $element['#upload_validators']['file_validate_extensions'][0];
+      variable_set('file_extensions', $extensions_variable_list);
+    }
+  }
 
   // Hidden elements to be populated by JavaScript after the file is uploaded
   $element['fid'] = array(
@@ -770,7 +780,9 @@ function _cors_file_log_events($message) {
  */
  function cors_file_get_endpoint($filename, $extension) {
 
-  $file_extensions = array('jpg', 'png', 'mp4', 'pdf');
+  $extensions_variable_list = variable_get('file_extensions');
+  $file_extensions = explode(' ', $extensions_variable_list);
+
   //validate the incoming data
   if (empty($filename) || empty($extension)) {
     _rackspace_cors_upload_display_json('error', 'Invalid Arguments');

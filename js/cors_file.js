@@ -21,6 +21,7 @@
 
     // Don't do anything if the <input> is empty.
     if (!$file_input.val()) {
+      alert('There was no file present. Please add a file and try again');
       return;
     }
 
@@ -130,7 +131,12 @@
       ajax_upload_button.one('click', function(e) {
         e.preventDefault();
         var file_input = $(this).siblings('input.cors-file-upload-file');
-        RackspaceCF.upload_file(file_input, 0, ajax_upload_button.attr('name'));
+        // Make sure we are sending a file to be uploaded
+        if (file_input[0].files[0] != undefined) {
+          RackspaceCF.upload_file(file_input, 0, ajax_upload_button.attr('name'));
+        } else {
+          alert('Please attach a file before uploading');
+        }
       });
 
     });
