@@ -794,9 +794,9 @@ function _cors_file_log_events($message) {
 
   //validate the incoming data
   if (empty($filename) || empty($extension)) {
-    _rackspace_cors_upload_display_json('error', 'Invalid Arguments');
+    _cors_file_display_json('error', 'Invalid Arguments');
   } else if (!in_array($extension, $file_extensions)){
-    _rackspace_cors_upload_display_json('error', 'Invalid Extension');
+    _cors_file_display_json('error', 'Invalid Extension');
   }
 
   //ensure the open cloud library is loaded and generate the endpoint
