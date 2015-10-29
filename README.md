@@ -32,7 +32,7 @@ php composer.phar require rackspace/php-opencloud
 * All uploaded files are stored in the base directory of the container. Preset directories inside the container are not yet supported.
 
 ## Development Roadmap
-* Add predefined directy support.
+* Create support for multiple file uploads
 
 
 ## Credits
