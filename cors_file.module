@@ -39,11 +39,11 @@
     'file' => 'cors_file.admin.inc',
   );
   // Endpoint to obtain the temporary URL
-  $items['endpoint/filename/%/type/%/%'] = array(
+  $items['endpoint/filename/%/type/%/%/%'] = array(
     'title' => 'Custom Endpoint',
     'description' => 'Generate a custom endpoint',
     'page callback' => 'cors_file_get_endpoint',
-    'page arguments' => array(2,4,5),
+    'page arguments' => array(2,4,5,6),
     'access arguments' => array('access content'),
   );
   return $items;
@@ -463,6 +463,7 @@ function _cors_file_log_events($message) {
 
 
   // Great idea to add client side validation for the extension list
+  $extension_list = "";
   if (isset($element['#upload_validators']['file_validate_extensions'][0])) {
     $list = $element['#upload_validators']['file_validate_extensions'][0];
     $extension_list = str_replace(' ', ',', $list);
@@ -481,14 +482,12 @@ function _cors_file_log_events($message) {
     );
   }
 
-  // Set the file extensions to be validated later when requesting a URL
-  $extensions_variable_list = variable_get('file_extensions');
-  if ($extensions_variable_list == NULL) {
-    if (isset($element['#upload_validators']['file_validate_extensions'][0])) {
-      $extensions_variable_list = $element['#upload_validators']['file_validate_extensions'][0];
-      variable_set('file_extensions', $extensions_variable_list);
-    }
-  }
+  // hidden list of extensions to validate against
+  $element['upload_extensions'] = array(
+    '#type' => 'hidden',
+    '#value' => $extension_list,
+    '#attributes' => array('class' => array('upload_extensions')),
+  );
 
   // Hidden element carryin the upload location
   $element['upload_location'] = array(
@@ -787,10 +786,10 @@ function _cors_file_log_events($message) {
  * @return string
  *  A temporary Rackspace endpoint URL
  */
- function cors_file_get_endpoint($filename, $extension, $upload_directory) {
+ function cors_file_get_endpoint($filename, $extension, $upload_directory, $extension_list) {
 
-  $extensions_variable_list = variable_get('file_extensions');
-  $file_extensions = explode(' ', $extensions_variable_list);
+  // break up the extensions list
+  $file_extensions = explode(',', $extension_list);
 
   //validate the incoming data
   if (empty($filename) || empty($extension)) {

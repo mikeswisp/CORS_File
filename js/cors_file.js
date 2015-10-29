@@ -43,9 +43,10 @@
 
     // get the upload directory that the file needs to be written to
     var upload_directory = $file_input.parent().find('.upload_location').val();
-
+    // get valid file extensions to validate against on the backend
+    var upload_extensions = $file_input.parent().find('.upload_extensions').val();
     // Create the endpoint URL to generate the temporary URL
-    endpoint_url = '/endpoint/filename/' + file[0] + '/type/' + file[1] + '/'+ upload_directory;
+    endpoint_url = '/endpoint/filename/' + file[0] + '/type/' + file[1] + '/'+ upload_directory + '/' +upload_extensions;
 
     // POST to drupal to get our temporary URL
     $.post(endpoint_url, null, endpoint_results, 'json');
@@ -140,10 +141,7 @@
     // The actual sbmit handler function
     function submitHandler(e) {
       e.preventDefault();
-
       var file_input = $(this).siblings('input.cors-file-upload-file');
-      console.log(file_input);
-
       // Make sure we are sending a file to be uploaded
       if (file_input[0].files[0] != undefined) {
         RackspaceCF.upload_file(file_input, 0, ajax_upload_button.attr('name'));

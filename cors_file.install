@@ -26,6 +26,5 @@
   variable_del('rackspace_auth_url');
   variable_del('rackspace_region');
   variable_del('rackspace_domain');
-  variable_del('file_extensions');
   variable_del('rackspace_debug');
  }
