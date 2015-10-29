@@ -39,14 +39,14 @@
     // Replace the file input with a bootstrap style progress bar
     $file_input.hide().after($progress_message);
     // Add the actual progress bar
-    $('.form-type-cors-file-upload .description').prepend($progress_bar);
+    $file_input.parent().parent().find('.description').prepend($progress_bar);
 
     // get the upload directory that the file needs to be written to
-    upload_directory = $('.upload_location').val();
+    var upload_directory = $file_input.parent().find('.upload_location').val();
 
     // Create the endpoint URL to generate the temporary URL
     endpoint_url = '/endpoint/filename/' + file[0] + '/type/' + file[1] + '/'+ upload_directory;
-    console.log(endpoint_url);
+
     // POST to drupal to get our temporary URL
     $.post(endpoint_url, null, endpoint_results, 'json');
 
@@ -128,23 +128,29 @@
    */
   Drupal.behaviors.RackspaceCF.attach = function(context, settings) {
     var ajax_upload_button = $('input.cors-file-form-submit', context);
-    // Attach the click function only once
-    ajax_upload_button.once('cors_file_upload', function(){
-      // Prevent Drupal's AJAX file upload code from running.
-      ajax_upload_button.unbind('mousedown');
 
-      ajax_upload_button.one('click', function(e) {
-        e.preventDefault();
-        var file_input = $(this).siblings('input.cors-file-upload-file');
-        // Make sure we are sending a file to be uploaded
-        if (file_input[0].files[0] != undefined) {
-          RackspaceCF.upload_file(file_input, 0, ajax_upload_button.attr('name'));
-        } else {
-          alert('Please attach a file before uploading');
-        }
+    // attach one submit handler per each CORS File field on the page
+    for (var i = 0; i < ajax_upload_button.length; i++) {
+      $(ajax_upload_button[i]).once('cors_file_upload', function(e) {
+        $(ajax_upload_button[i]).unbind('mousedown');
+        $(ajax_upload_button[i]).one('click', submitHandler);
       });
+    }
 
-    });
+    // The actual sbmit handler function
+    function submitHandler(e) {
+      e.preventDefault();
+
+      var file_input = $(this).siblings('input.cors-file-upload-file');
+      console.log(file_input);
+
+      // Make sure we are sending a file to be uploaded
+      if (file_input[0].files[0] != undefined) {
+        RackspaceCF.upload_file(file_input, 0, ajax_upload_button.attr('name'));
+      } else {
+        alert('Please attach a file before uploading');
+      }
+    }
 
   };
 
