@@ -39,11 +39,11 @@
     'file' => 'cors_file.admin.inc',
   );
   // Endpoint to obtain the temporary URL
-  $items['endpoint/filename/%/type/%'] = array(
+  $items['endpoint/filename/%/type/%/%'] = array(
     'title' => 'Custom Endpoint',
     'description' => 'Generate a custom endpoint',
     'page callback' => 'cors_file_get_endpoint',
-    'page arguments' => array(2,4),
+    'page arguments' => array(2,4,5),
     'access arguments' => array('access content'),
   );
   return $items;
@@ -231,12 +231,6 @@ function _cors_file_log_events($message) {
           $form['field']['cardinality']['#value'] = t('1');
           $form['field']['cardinality']['#default_value'] = t('1');
 
-          //for dev purposes restrict the file directory option
-          //@TODO add support for file directories in a container
-          $form['instance']['settings']['file_directory']['#disabled'] = TRUE;
-          $title = 'File directory (Locked for CORS File Support)';
-          $form['instance']['settings']['file_directory']['#title'] = t($title);
-          $form['instance']['settings']['file_directory']['#value'] = t('');
         } else {
           //@TODO look at adding more flexible support for other location via this widget
           drupal_set_message(t('You do not have your Rackspace Container configured'), 'error');
@@ -267,7 +261,7 @@ function _cors_file_log_events($message) {
   if (isset($form_state['values']['field']['settings']['uri_scheme']) &&
     $form_state['values']['field']['settings']['uri_scheme'] == 'rackspace') {
     //set default values
-    $form_state['values']['instance']['settings']['file_directory'] = t('');
+    //$form_state['values']['instance']['settings']['file_directory'] = t('');
     $form_state['values']['field']['cardinality'] = t('1');
   }
  }
@@ -299,6 +293,7 @@ function _cors_file_log_events($message) {
  *  The form elements for a single widget for this field.
  */
  function cors_file_field_widget_form(
+
   &$form, &$form_state, $field, $instance,
   $langcode, $items, $delta, $element) {
 
@@ -344,8 +339,8 @@ function _cors_file_log_events($message) {
     '#extended' => TRUE,
   );
 
-  //@TODO add the cardinality back in as support for multiple files gets developed
-  //the cardinality of the field has been removed because this is assumed to be one
+  // @TODO add the cardinality back in as support for multiple files gets developed
+  // the cardinality of the field has been removed because this is assumed to be one
 
  // Set the default value.
   $element['#default_value'] = $defaults;
@@ -364,7 +359,6 @@ function _cors_file_log_events($message) {
   $elements = array($element);
 
   // @TODO Multiple field processing
-
   return $elements;
  }
 
@@ -409,9 +403,14 @@ function _cors_file_log_events($message) {
   // get the field hook
   $parents_id = implode('_', $element['#parents']);
 
+  $upload_directory = "";
   // get the upload directory to write the file to in Rackspace
   if (isset($element['#upload_location'])) {
     $upload_directory = $element['#upload_location'];
+    $explode_stream_wrapper = explode('://', $upload_directory);
+    if (!empty($explode_stream_wrapper[1])) {
+      $upload_directory = $explode_stream_wrapper[1];
+    }
   }
 
   // Upload button.
@@ -490,6 +489,13 @@ function _cors_file_log_events($message) {
       variable_set('file_extensions', $extensions_variable_list);
     }
   }
+
+  // Hidden element carryin the upload location
+  $element['upload_location'] = array(
+    '#type' => 'hidden',
+    '#value' => $upload_directory,
+    '#attributes' => array('class' => array('upload_location')),
+  );
 
   // Hidden elements to be populated by JavaScript after the file is uploaded
   $element['fid'] = array(
@@ -570,6 +576,7 @@ function _cors_file_log_events($message) {
     $return = $input;
 
     $base_dir = '';
+
     if (isset($element['#upload_location']) &&
       file_uri_target($element['#upload_location']) != '') {
       $base_dir = file_uri_target($element['#upload_location']) . '/';
@@ -583,7 +590,7 @@ function _cors_file_log_events($message) {
     $file->filemime = $input['filemime'];
     $file->uri = 'rackspace://' .$base_dir .$input['filename'];
     $file->status = 1;
-    $file->type = _cors_file_get_endpoint($input['filename']);
+    $file->type = _cors_file_get_extension($input['filename']);
     $file->timestamp = REQUEST_TIME;
 
     // Attempt to wtite the file managed record and notify all the needed hooks
@@ -722,6 +729,7 @@ function _cors_file_log_events($message) {
  *  A reference to the state of the form being altered
  */
  function cors_file_upload_remove_submit($form, &$form_state) {
+
   $parents = $form_state['triggering_element']['#array_parents'];
   // Drop the button_key value off the end of the parents array, since we don't need it.
   array_pop($parents);
@@ -762,6 +770,7 @@ function _cors_file_log_events($message) {
  *  A reference to the state of the form being altered
  */
  function cors_file_upload_submit($form, &$form_state) {
+
   // We choose to always rebuild, to keep the form processing
   // workflow consistent between the two buttons.
   $form_state['rebuild'] = TRUE;
@@ -778,7 +787,7 @@ function _cors_file_log_events($message) {
  * @return string
  *  A temporary Rackspace endpoint URL
  */
- function cors_file_get_endpoint($filename, $extension) {
+ function cors_file_get_endpoint($filename, $extension, $upload_directory) {
 
   $extensions_variable_list = variable_get('file_extensions');
   $file_extensions = explode(' ', $extensions_variable_list);
@@ -839,7 +848,11 @@ function _cors_file_log_events($message) {
       //create a new object to set our filename and create temp URL
       $object =  $container->dataObject();
       //create a file with this object using the passed in data
-      $object->setName($filename . '.' . $extension);
+      $file_path = $filename . '.' . $extension;
+      if (!empty($upload_directory)) {
+        $file_path =  $upload_directory . '/' . $filename . '.' . $extension;
+      }
+      $object->setName($file_path);
       //get a temporary endpoint for one hour and return it
       $temp_url = $object->getTemporaryUrl(3000, "PUT");
       //print out a JSON message with the temp URL
@@ -866,7 +879,8 @@ function _cors_file_log_events($message) {
  * @return string
  *  The type of file that was determined based upon the file name
  */
- function _cors_file_get_endpoint($filename) {
+ function _cors_file_get_extension($filename) {
+
   // Get the file extension
   $extension = pathinfo($filename);
   // Define common image, doc, and video extensions

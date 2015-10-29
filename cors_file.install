@@ -10,6 +10,7 @@
  * Displays a message to the users that the module was installed successfully
  */
  function cors_file_enable(){
+
   drupal_set_message(t('CORS File module was successfully enabled.'), 'status');
  }
 
@@ -18,6 +19,7 @@
  * Deletes the module defined variables
  */
  function cors_file_uninstall() {
+
   variable_del('rackspace_username');
   variable_del('rackspace_api_key');
   variable_del('rackspace_container');
@@ -25,4 +27,5 @@
   variable_del('rackspace_region');
   variable_del('rackspace_domain');
   variable_del('file_extensions');
+  variable_del('rackspace_debug');
  }

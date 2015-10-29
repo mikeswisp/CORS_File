@@ -6,7 +6,8 @@
 
 (function ($) {
   RackspaceCF = {};
-  Drupal.behaviors.RackspaceCF = {};
+  Drupal.behaviors.RackspaceCF = {},
+  upload_directory = '';
 
   RackspaceCF.upload_file = function($file_input, button_name) {
 
@@ -40,8 +41,12 @@
     // Add the actual progress bar
     $('.form-type-cors-file-upload .description').prepend($progress_bar);
 
+    // get the upload directory that the file needs to be written to
+    upload_directory = $('.upload_location').val();
+
     // Create the endpoint URL to generate the temporary URL
-    endpoint_url = '/endpoint/filename/' + file[0] + '/type/' + file[1];
+    endpoint_url = '/endpoint/filename/' + file[0] + '/type/' + file[1] + '/'+ upload_directory;
+    console.log(endpoint_url);
     // POST to drupal to get our temporary URL
     $.post(endpoint_url, null, endpoint_results, 'json');
 

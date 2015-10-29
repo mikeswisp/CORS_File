@@ -26,6 +26,7 @@
  *   Rackspace Cloud authentication URLs
  */
 function _cors_file_rackspce_auth_urls() {
+
   $info = libraries_load('php-opencloud');
   if ($info['loaded']) {
     return array(
@@ -54,6 +55,7 @@ function _cors_file_rackspce_auth_urls() {
  *   Rackspace Cloud Regions
  */
 function _cors_file_rackspace_regions() {
+
   return array(
     'DFW' => t('Dallas'),
     'ORD' => t('Chicago'),
@@ -136,6 +138,13 @@ function cors_file_admin() {
     '#required' => TRUE,
   );
 
+  $form['rackspace_debug'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Debug'),
+    '#description' => t('Check the box to enable logging.'),
+    '#default_value' => variable_get('rackspace_debug'),
+  );
+
   return system_settings_form($form);
 }
 
@@ -173,15 +182,17 @@ function cors_file_admin() {
       );
       return;
     }
-    //username
+    // username
     $username = $form_state['values']['rackspace_username'];
-    //api key
+    // api key
     $api_key = $form_state['values']['rackspace_api_key'];
     if(empty($api_key)) $api_key = variable_get('rackspace_api_key');
-    //container
+    // container
     $container_name = $form_state['values']['rackspace_container'];
-    //domain
+    // domain
     $domain = $form_state['values']['rackspace_domain'];
+    // debug
+    $debug = $form_state['values']['rackspace_debug'];
 
     try {
       //set the error key to the api key
@@ -218,6 +229,7 @@ function cors_file_admin() {
       variable_set('rackspace_region', $region);
       variable_set('rackspace_domain', $domain);
       variable_set('rackspace_container', $container_name);
+      variable_set('rackspace_debug', $debug);
 
       _cors_file_log_events('Successfully authenticated with Rackspace');
     } catch (Exception $e) {
