@@ -789,7 +789,11 @@ function _cors_file_log_events($message) {
  function cors_file_get_endpoint($filename, $extension, $upload_directory, $extension_list) {
 
   // break up the extensions list
-  $file_extensions = explode(',', $extension_list);
+  if (strpos($extension_list, ',') != -1) {
+    $file_extensions = explode(',', $extension_list);
+  } else {
+    $file_extensions = array($extension_list);
+  }
 
   //validate the incoming data
   if (empty($filename) || empty($extension)) {
