@@ -580,13 +580,19 @@ function _cors_file_log_events($message) {
       file_uri_target($element['#upload_location']) != '') {
       $base_dir = file_uri_target($element['#upload_location']) . '/';
     }
+
+    $filemime = $input['filemime'];
+    if ($filemime == '' || empty($filemime)) {
+      $filemime = _cors_file_attempt_to_get_mimetype($input['filename']);
+    }
+
     // Create a file object
     $file = new stdClass();
     $file->fid = NULL;
     $file->uid = $user->uid;
     $file->filename = $input['filename'];
     $file->filesize = $input['filesize'];
-    $file->filemime = $input['filemime'];
+    $file->filemime = $filemime;
     $file->uri = 'rackspace://' .$base_dir .$input['filename'];
     $file->status = 1;
     $file->type = _cors_file_get_extension($input['filename']);
@@ -869,6 +875,27 @@ function _cors_file_log_events($message) {
     _cors_file_display_json('error', 'Library could not be loaded');
   }
  }
+
+/**
+ * Utility function to attempt to get the mimetype if one if not define
+ *
+ * @param $filename
+ *  The filename of the file in question
+ *
+ * @return string
+ *  The mimetype to be return to the the file object
+ */
+function _cors_file_attempt_to_get_mimetype($filename) {
+  $extension = pathinfo($filename);
+
+  if ($extension == 'epub' || $extension == 'EPUB') {
+    return 'application/epub+zip';
+  } else {
+    return 'application/octet-stream';
+  }
+  // More file types
+  // ...
+}
 
 /**
  * Utility function to process the type of file that is being saved
