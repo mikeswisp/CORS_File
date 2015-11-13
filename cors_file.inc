@@ -889,7 +889,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    *   A file object
    *
    * @return object
-   *  The updated file object..
+   *  The saved file object..
    */
   public function add_file(stdClass $file) {
 
@@ -907,6 +907,32 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
     return $file;
   }
 
+  /**
+   * Utility function for updating an existing file
+   *
+   * @param string $file
+   *   A file object
+   *
+   * @return object
+   *  The updated file object..
+   */
+  public function update_file(stdClass $file) {
+
+    if (variable_get('rackspace_debug')) {
+      $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__);
+    }
+    module_invoke_all('file_presave', $file);
+    module_invoke_all('entity_presave', $file, 'file');
+
+    drupal_write_record('file_managed', $file, 'fid');
+    // Inform modules that the file has been updated.
+    module_invoke_all('file_update', $file);
+    module_invoke_all('entity_update', $file, 'file');
+
+    // Clear the static loading cache.
+    entity_get_controller('file')->resetCache(array($file->fid));
+    return $file;
+  }
   /**
    * Utility function for getting file information.
    *

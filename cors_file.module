@@ -261,7 +261,6 @@ function _cors_file_log_events($message) {
   if (isset($form_state['values']['field']['settings']['uri_scheme']) &&
     $form_state['values']['field']['settings']['uri_scheme'] == 'rackspace') {
     //set default values
-    //$form_state['values']['instance']['settings']['file_directory'] = t('');
     $form_state['values']['field']['cardinality'] = t('1');
   }
  }
@@ -519,6 +518,12 @@ function _cors_file_log_events($message) {
     '#default_value' => $filesize,
   );
 
+  $element['cors_file_validate'] = array(
+    '#type' => 'hidden',
+    '#attributes' => array('class' => array('cors_file_validate')),
+    '#default_value' => $element['#required'],
+  );
+
   $form['#attributes'] = array('class' => array('cors-upload-form'));
 
   $element['#prefix'] = '<div id="' . $element['#id'] . '-ajax-wrapper">';
@@ -586,23 +591,44 @@ function _cors_file_log_events($message) {
       $filemime = _cors_file_attempt_to_get_mimetype($input['filename']);
     }
 
-    // Create a file object
-    $file = new stdClass();
-    $file->fid = NULL;
-    $file->uid = $user->uid;
-    $file->filename = $input['filename'];
-    $file->filesize = $input['filesize'];
-    $file->filemime = $filemime;
-    $file->uri = 'rackspace://' .$base_dir .$input['filename'];
-    $file->status = 1;
-    $file->type = _cors_file_get_extension($input['filename']);
-    $file->timestamp = REQUEST_TIME;
+    // Flag to determine which file method to use - save/update
+    $new_file_flag = TRUE;
+    // Attempt to determine if the file already exist
+    if ($file = _cors_file_attempt_to_load_file($input['filename'])) {
 
-    // Attempt to wtite the file managed record and notify all the needed hooks
+      $file->uid = $user->uid;
+      $file->filename = $input['filename'];
+      $file->filesize = $input['filesize'];
+      $file->filemime = $filemime;
+      $file->uri = 'rackspace://' .$base_dir .$input['filename'];
+      $file->type = _cors_file_get_extension($input['filename']);
+      $file->timestamp = REQUEST_TIME;
+      $new_file_flag = FALSE;
+
+    } else {
+      // Create a file object
+      $file = new stdClass();
+      $file->fid = NULL;
+      $file->uid = $user->uid;
+      $file->filename = $input['filename'];
+      $file->filesize = $input['filesize'];
+      $file->filemime = $filemime;
+      $file->uri = 'rackspace://' .$base_dir .$input['filename'];
+      $file->status = 1;
+      $file->type = _cors_file_get_extension($input['filename']);
+      $file->timestamp = REQUEST_TIME;
+    }
+
+    // Attempt to save/update the file managed record
+    // Also notify all the needed hooks
     try {
       // Save the uploaded file to the file_managed table.
       $wrapper = new RackspaceStreamWrapper();
-      $file = $wrapper->add_file($file);
+      if ($new_file_flag) {
+        $file = $wrapper->add_file($file);
+      } else {
+        $file = $wrapper->update_file($file);
+      }
       $return['fid'] = $file->fid;
 
     } catch (Exception $e) {
@@ -696,6 +722,33 @@ function _cors_file_log_events($message) {
   if (!$element['#extended']) {
     form_set_value($element, $element['fid']['#value'], $form_state);
   }
+
+ }
+
+
+/**
+ * Perform node validation before a node is created or updated.
+ * Implements hook_node_validate()
+ *
+ * @param $node
+ *  The node being validated.
+ * @param $form
+ *  The form being used to edit the node.
+ * @param &$form_state
+ *  The form state array.
+ */
+ function cors_file_node_validate($node, $form, &$form_state) {
+  
+  // Attempts to validate cors_file fields on the page
+  foreach ($form_state['values'] as $key => $value) {
+    if (isset($value[LANGUAGE_NONE][0]['cors_file_validate'])) {
+      if ($value[LANGUAGE_NONE][0]['cors_file_validate'] && 
+        $value[LANGUAGE_NONE][0]['fid'] == 0) {
+        $element = $form[$key];
+        form_set_error($key, t('Please upload a file before saving!'));
+      }
+    }
+  }
  }
 
 /**
@@ -764,6 +817,8 @@ function _cors_file_log_events($message) {
   $form_state['rebuild'] = TRUE;
 
  }
+
+
 
 /**
  * Submit callback for the upload button on cors_file_upload element.
@@ -895,6 +950,32 @@ function _cors_file_attempt_to_get_mimetype($filename) {
   }
   // More file types
   // ...
+}
+
+/**
+ * Utility function that attempts to determine if a file
+ * is available or not to load the existing file
+ *
+ * @param $filename 
+ *  The name of the file in question
+ *
+ * @return object
+ *  The file object if found, otherwise NULL
+ */
+function _cors_file_attempt_to_load_file($filename) {
+  
+  $result = db_select('file_managed', 'f')
+                      ->fields('f', array('fid'))
+                      ->condition('f.filename', $filename,'=')
+                      ->execute()
+                      ->fetchAssoc();
+
+  if (isset($result['fid'])) {
+    $file = entity_load_unchanged('file', $result['fid']);
+    return $file;
+  } else {
+    return NULL;
+  }
 }
 
 /**

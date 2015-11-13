@@ -134,19 +134,20 @@
     for (var i = 0; i < ajax_upload_button.length; i++) {
       $(ajax_upload_button[i]).once('cors_file_upload', function(e) {
         $(ajax_upload_button[i]).unbind('mousedown');
-        $(ajax_upload_button[i]).one('click', submitHandler);
+        $(ajax_upload_button[i]).one('click', submit_handler);
+        
       });
     }
 
     // The actual sbmit handler function
-    function submitHandler(e) {
+    function submit_handler(e) {
       e.preventDefault();
       var file_input = $(this).siblings('input.cors-file-upload-file');
       // Make sure we are sending a file to be uploaded
       if (file_input[0].files[0] != undefined) {
         RackspaceCF.upload_file(file_input, 0, ajax_upload_button.attr('name'));
       } else {
-        alert('Please attach a file before uploading');
+        alert('Please upload a file before saving!');
       }
     }
 
