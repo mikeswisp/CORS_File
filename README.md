@@ -32,7 +32,7 @@ php composer.phar require rackspace/php-opencloud
 
 ## Development Roadmap
 * Create support for multiple file uploads
-* Add proper test to the module.
+* Add testing to the module.
 * Port to D8.
 
 ## Credits
