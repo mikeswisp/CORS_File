@@ -91,6 +91,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   protected function getTarget($uri = NULL) {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__ . ' URI ' . $uri);
     }
     if (!isset($uri)) {
@@ -104,6 +105,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    * Base implementation of getMimeType().
    */
   public static function getMimeType($uri, $mapping = NULL) {
+
     if (variable_get('rackspace_debug')) {
       watchdog(
         "cors_file",
@@ -149,6 +151,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function getExternalUrl() {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__);
     }
     $target = file_uri_target($this->uri);
@@ -163,7 +166,6 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
     } else {
       $url = 'http://' . $domain . '/' . $target;
     }
-
     return $url;
   }
 
@@ -178,10 +180,10 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
    *
    * @return bool
    */
-
   public function chmod($mode) {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__ . ' MODE ' . $mode);
     }
     return TRUE;
@@ -196,6 +198,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function realpath() {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__);
     }
     return 'rackspace://' . $this->getLocalPath();
@@ -214,6 +217,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   protected function getLocalPath($uri = NULL) {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__ . ' URI ' . $uri);
     }
     if (!isset($uri)) {
@@ -245,6 +249,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function stream_open($uri, $mode, $options, &$opened_path) {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__ . ' URI ' . $uri);
     }
     return TRUE;
@@ -271,6 +276,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function stream_lock($operation) {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__ . ' OPERATION ' . $operation);
     }
     return FALSE;
@@ -290,6 +296,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function stream_read($count) {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__ );
     }
     // If the data is empty, get the data from the object.
@@ -298,7 +305,11 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
       // If the object is empty, get the object from Rackspace.
       if (!$this->object) {
         if (!isset($this->container)) {
-          $this->setContainer();
+          try {
+            $this->setContainer();
+          } catch (Exception $e) {
+            $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__ . ' URI ' . $e->getMessage());
+          }
         }
         $this->object = $this->container->dataObject($target);
       }
@@ -325,6 +336,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function stream_write($data) {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__);
     }
     return FALSE;
@@ -344,6 +356,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function stream_eof() {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__);
     }
     return TRUE;
@@ -368,6 +381,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function stream_seek($offset, $whence) {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__ . ' OFFSET ' . $offset);
     }
     return FALSE;
@@ -387,6 +401,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function stream_flush() {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__);
     }
     return TRUE;
@@ -406,6 +421,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function stream_tell() {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__);
     }
     return $this->stream_pointer;
@@ -425,6 +441,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function stream_stat() {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__);
     }
     $stat = array();
@@ -493,6 +510,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function stream_close() {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__);
     }
     return FALSE;
@@ -513,6 +531,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function unlink($uri) {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__ . ' URI ' . $uri);
     }
     $this->uri = $uri;
@@ -520,7 +539,11 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
     $target = $this->getLocalPath($this->uri);
 
     if (!isset($this->container)) {
-      $this->setContainer();
+      try {
+        $this->setContainer();
+      } catch(Exception $e) {
+        $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__ . ' URI ' . $e->getMessage());
+      }
     }
 
     $deleted = FALSE;
@@ -533,6 +556,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
       $deleted = $obj->delete();
     } catch (NoSuchObjectException $e) {
       $doesnotexist = TRUE;
+      $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__ . ' URI ' . $e->getMessage());
     }
 
     if ($deleted || $doesnotexist) {
@@ -561,6 +585,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function rename($from_uri, $to_uri) {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__ . ' FROM URI ' . $from_uri);
     }
     return FALSE;
@@ -581,9 +606,9 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function url_stat($uri, $flags) {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__ . ' URI ' . $uri);
     }
-
 
     if (!isset($uri)) {
       $uri = $this->uri;
@@ -608,7 +633,11 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
     if (!$fileinfo) {
       if (!isset($this->object)) {
         if (!isset($this->container)) {
-          $this->setContainer();
+          try {
+            $this->setContainer();
+          } catch (Exception $e) {
+            $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__ . ' URI ' . $e->getMessage());
+          }
         }
       }
 
@@ -621,12 +650,11 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
 
         // File does exist!  add file info to the database.
         $this->add_file($this->uri, $filemime, $filesize);
-      }
-      catch (Exception $e) {
+      } catch (Exception $e) {
         $objexists = FALSE;
+        $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__ . ' URI ' . $e->getMessage());
       }
-    }
-    else {
+    } else {
       // Fileinfo exists in the database.
       $objexists = TRUE;
       $filemime = $fileinfo['filemime'];
@@ -638,8 +666,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
       if ($filemime == "application/directory") {
         // S_IFDIR means it's a directory.
         $mode = 0040000;
-      }
-      else {
+      } else {
         // S_IFREG, means it's a file.
         $mode = 0100000;
       }
@@ -677,7 +704,6 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
         );
       }
     }
-
     return $stat;
   }
 
@@ -696,6 +722,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function dirname($uri = NULL) {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__ . ' URI ' . $uri);
     }
     list($scheme, $target) = explode('://', $uri, 2);
@@ -705,7 +732,6 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
     if ($dirname == '.') {
       $dirname = '';
     }
-
     return $scheme . '://' . $dirname;
   }
 
@@ -730,6 +756,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function mkdir($uri, $mode, $options) {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__ . ' URI ' . $uri);
     }
     return FALSE;
@@ -754,6 +781,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function rmdir($uri, $options) {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__ . ' URI ' . $uri);
     }
     $this->uri = $uri;
@@ -779,6 +807,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function dir_opendir($uri, $options) {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__ . ' URI ' . $uri);
     }
     return FALSE;
@@ -797,6 +826,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function dir_readdir() {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__);
     }
     return FALSE;
@@ -815,6 +845,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function dir_rewinddir() {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__);
     }
     $this->directory_pointer = 0;
@@ -834,6 +865,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function dir_closedir() {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__);
     }
     $this->directory_pointer = 0;
@@ -851,6 +883,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function getDirectoryPath() {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__);
     }
     return "http://" . variable_get('rackspace_domain');
@@ -866,6 +899,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   protected function getStreamContent() {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__);
     }
     if (!isset($this->$stream_data)) {
@@ -894,6 +928,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function add_file(stdClass $file) {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__);
     }
     module_invoke_all('file_presave', $file);
@@ -919,6 +954,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function update_file(stdClass $file) {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__);
     }
     module_invoke_all('file_presave', $file);
@@ -945,6 +981,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function get_file_info($uri) {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__);
     }
     $query = db_select('file_managed', 'f');
@@ -963,6 +1000,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function remove_file($uri) {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__);
     }
     return db_delete('file_managed')->condition('uri', $uri)->execute();
@@ -975,6 +1013,7 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function setContainer() {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__);
     }
     $info = libraries_load('php-opencloud');
@@ -1005,12 +1044,29 @@ class RackspaceStreamWrapper implements DrupalStreamWrapperInterface {
   public function getClient() {
 
     if (variable_get('rackspace_debug')) {
+      // Add testing variables here for debugging purposes
       $this->writeWatchdog('Func: ' . __FUNCTION__ . ' Line: ' .__LINE__);
     }
     $client = new OpenCloud\Rackspace(variable_get('rackspace_auth_url'), array(
       'username' => variable_get('rackspace_username'),
       'apiKey' => variable_get('rackspace_api_key'),
     ));
+
+    $cache_file = 'private://.nkW54jCnViwzJeHc0OyG';
+
+    // If the cache file exists, try importing it into the client
+    if (file_exists($cache_file)) {
+      $data = unserialize(file_get_contents($cache_file));
+      $client->importCredentials($data);
+    }
+
+    $token = $client->getTokenObject();
+
+    // If no token exists, or the current token is expired, re-authenticate and save the new token to disk
+    if (!$token || ($token && $token->hasExpired())) {
+      $client->authenticate();
+      file_put_contents($cache_file, serialize($client->exportCredentials()));
+    }
     return $client;
   }
 

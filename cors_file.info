@@ -6,6 +6,7 @@ package = Media
 dependencies[] = jquery_update
 dependencies[] = libraries
 
+project = "cors_file"
 files[] = cors_file.inc
 files[] = cors_file.module
 scripts[] = js/cors_file.js

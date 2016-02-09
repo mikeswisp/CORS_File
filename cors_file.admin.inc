@@ -39,8 +39,7 @@ function _cors_file_rackspce_auth_urls() {
         'url' => OpenCloud\Rackspace::UK_IDENTITY_ENDPOINT,
       ),
     );
-  }
-  else {
+  } else {
     form_set_error('', t('PHP OpenStack library could not be loaded.'));
   }
 }
@@ -158,7 +157,7 @@ function cors_file_admin() {
  *  A refernce to the current state of the form that includes submitted values
  *
  */
- function cors_file_admin_validate($form, &$form_state) {
+function cors_file_admin_validate($form, &$form_state) {
 
   $info = libraries_load('php-opencloud');
   if ($info['loaded']) {
@@ -238,4 +237,4 @@ function cors_file_admin() {
       return;
     }
   }
- }
+}

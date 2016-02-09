@@ -128,6 +128,7 @@
    * Implements Drupal.behaviors.
    */
   Drupal.behaviors.RackspaceCF.attach = function(context, settings) {
+    
     var ajax_upload_button = $('input.cors-file-form-submit', context);
 
     // attach one submit handler per each CORS File field on the page
@@ -150,7 +151,5 @@
         alert('Please upload a file before saving!');
       }
     }
-
   };
-
 })(jQuery);
