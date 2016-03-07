@@ -1,0 +1,101 @@
+<?php
+
+/**
+ * @File
+ * Contains cors_file_test_rackspace_variables
+ * @Functional Test for determining all Rackspace variables are present for usage of the module
+ */
+
+class cors_file_test_rackspace_variables extends DrupalWebTestCase {
+
+  protected $admin_user;
+
+  /**
+   * The profile to install as a basis for testing.
+   *
+   * @var string
+   */
+  protected $profile = 'standard';
+
+  /**
+   * Describes the testing information to the admin portion of the user interface
+   *
+   * @return array
+   *  Array of key : value pairs to describe what is happening with this test
+   */
+  public static function getInfo() {
+    
+    return array(
+      'name' => 'Test Rackspace Config Variables',
+      'description' => 'Tests whether variables are present during Racksapce container setup.',
+      'group' => 'CORS File'
+    );
+  }
+
+  /**
+   * Utility function to setup all of the needed testing variabls to run the test
+   *
+   *
+   */
+  public function setUp() {
+
+    // Enable any modules required for the test. This should be an array of
+    // module names.
+    parent::setUp(array(
+      'file',
+      'system',
+      'jquery_update',
+      'libraries',
+      'cors_file'
+    ));
+
+    // Run a features rebuild to ensure our feature is fully installed.
+    features_rebuild();
+
+    // Create and log in our privileged user.
+    $this->admin_user = $this->drupalCreateUser(array(
+      'administer users',
+      'administer permissions',
+      'administer site configuration',
+      'view the administration theme',
+      'access administration pages',
+    ));
+    $this->drupalLogin($this->admin_user);
+  }
+
+  /**
+   * Test for determining all Rackspace variables are present during module usage
+   */
+  public function testRackspaceVariables() {
+
+    $path = '/admin/config/media/rackspace';
+
+    // Go to the admin setup page
+    $this->drupalGet($path);
+    
+    
+    // Add in your own variables
+    $auth_url = 'rackspace_auth_url';
+    $container_region = 'rackspace_container_region';
+    $username = 'rackspace_account_username';
+    $api_key = 'rackspace_api_key';
+    $container_name = 'rackspace_container_name';
+    $target = 'rackspace_container_target_url';
+
+    $rackspace_data = array();
+    $rackspace_data['rackspace_auth_url'] = $auth_url;
+    $rackspace_data['rackspace_region'] = $container_region;
+    $rackspace_data['rackspace_username'] = $username;
+    $rackspace_data['rackspace_api_key'] = $api_key;
+    $rackspace_data['rackspace_container'] = $container_name;
+    $rackspace_data['rackspace_domain'] = $target;
+
+    $this->drupalPost($path, $rackspace_data, t('Save configuration'));
+
+    $this->assertText(
+      'The configuration options have been saved.', 
+      'Search for the message that is displayed on save!'
+    );
+    
+  }
+}

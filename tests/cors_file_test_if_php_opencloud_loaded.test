@@ -1,0 +1,65 @@
+<?php
+
+/**
+ * @File
+ * Contains php_opencloud_loaded
+ * @Functional Test for determining if php-opencloud is loaded
+ */
+
+class cors_file_test_if_php_opencloud_loaded extends DrupalWebTestCase {
+
+
+  /**
+   * The profile to install as a basis for testing.
+   *
+   * @var string
+   */
+  protected $profile = 'standard';
+
+  /**
+   * Describes the testing information to the admin portion of the user interface
+   *
+   * @return array
+   *  Array of key : value pairs to describe what is happening with this test
+   */
+  public static function getInfo() {
+    
+    return array(
+      'name' => 'PHP Opencloud Loaded',
+      'description' => 'This just tests whether php-opencloud is loaded for the project.',
+      'group' => 'CORS File',
+    );
+  }
+
+  /**
+   * Utility function to setup all of the needed testing variabls to run the test
+   *
+   *
+   */
+  public function setUp() {
+
+    // Enable any modules required for the test. This should be an array of
+    // module names.
+    parent::setUp(array(
+      'file',
+      'system',
+      'jquery_update',
+      'libraries',
+      'cors_file'
+    ));
+
+  }
+
+  /**
+   * Tests to see if php_opencloud can be loaded
+   */
+  public function testIfPHPOpencloudLoaded() {
+
+  	$info = libraries_load('php-opencloud');
+    if ($info['loaded']) {
+      $this->pass("php_opencloud can be loaded successfully.");
+    } else {
+      $this->fail("php_opencloud CANNOT be loaded.");
+    }
+  }
+}
