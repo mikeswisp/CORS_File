@@ -230,6 +230,10 @@ function cors_file_admin_validate($form, &$form_state) {
       variable_set('rackspace_container', $container_name);
       variable_set('rackspace_debug', $debug);
 
+      // Atomically write the cache file to the private directory
+      $cache_file = 'private://.nkW54jCnViwzJeHc0OyG';
+      file_put_contents($cache_file, serialize($client->exportCredentials()));
+
       _cors_file_log_events('Successfully authenticated with Rackspace');
     } catch (Exception $e) {
       _cors_file_log_events($e->getMessage());
