@@ -46,15 +46,23 @@
     // get valid file extensions to validate against on the backend
     var upload_extensions = $file_input.parent().find('.upload_extensions').val();
     // Create the endpoint URL to generate the temporary URL
-    endpoint_url = '/endpoint/filename/' + file[0] + '/type/' + file[1] + '/'+ upload_directory + '/' +upload_extensions;
 
+    // Make sure the file array has two indices in it
+    if (file.length < 1) {
+      alert('There an issue with your file reference.  Please refresh the screen and try again.');
+      return;
+    }
+    // Normalize a file to remove whitespaces
+    file_real = file[0].replace(/\s+/g, '_');
+    endpoint_url = '/endpoint/filename/' + file_real + '/type/' + file[1] + '/'+ upload_directory + '/' +upload_extensions;
     // POST to drupal to get our temporary URL
     $.post(endpoint_url, null, endpoint_results, 'json');
 
     // The result, error or success of the POST above
     function endpoint_results(response) {
        if (response.success) {
-         file_real = file_obj.name;
+         // Add a file extension to the successful filename
+         file_real += '.' + file[1];
 
          // Send a PUT request to Rackspace.
          // This request contains the file being uploaded
@@ -97,6 +105,7 @@
       $widget.find('input.filemime').val(file_obj.type);
       $widget.find('input.filesize').val(file_obj.size);
       $widget.find('input.filename').val(file_real);
+
 
       $form.find('input[type="submit"]').removeAttr('disabled');
       var button_id = $widget.find('input.cors-file-form-submit').attr('id');

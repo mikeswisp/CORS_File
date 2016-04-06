@@ -25,7 +25,7 @@
  * @return array
  *   Menu item array
  */
-function cors_file_menu() {
+ function cors_file_menu() {
 
   $items = array();
   // Menu link to configure Rackspace settings
@@ -57,7 +57,7 @@ function cors_file_menu() {
  * @return array
  *   php-opencloud library configuration
  */
-function cors_file_libraries_info() {
+ function cors_file_libraries_info() {
 
   return array(
     'php-opencloud' => array(
@@ -76,7 +76,7 @@ function cors_file_libraries_info() {
       ),
     ),
   );
-}
+ }
 
 /**
  * Implements hook_stream_wrappers()
@@ -84,7 +84,7 @@ function cors_file_libraries_info() {
  * @return array
  *  Returns an array that registers information about a custom stream wrapper
  */
-function cors_file_stream_wrappers() {
+ function cors_file_stream_wrappers() {
 
   return array(
     'rackspace' => array(
@@ -93,7 +93,7 @@ function cors_file_stream_wrappers() {
       'description' => t('A custom stream wrapper for Rackspace Cloud Files'),
     ),
   );
-}
+ }
 
 /**
  * Utility function used to write module events to watchdog
@@ -120,7 +120,7 @@ function _cors_file_log_events($message) {
  * @param $value
  *  The message to be printed out to the browser
  */
-function _cors_file_display_json($key, $value) {
+ function _cors_file_display_json($key, $value) {
 
   drupal_add_http_header('Content-Type', 'application/json; charset=utf-8');
   print json_encode(
@@ -129,7 +129,7 @@ function _cors_file_display_json($key, $value) {
     )
   );
   drupal_exit();
-}
+ }
 
 /**
  * Implements hook_element_info()
@@ -139,7 +139,7 @@ function _cors_file_display_json($key, $value) {
  * @return array
  *  An associative array describing the element types being defined.
  */
-function cors_file_element_info() {
+ function cors_file_element_info() {
 
   $file_path = drupal_get_path('module', 'cors_file');
 
@@ -164,7 +164,7 @@ function cors_file_element_info() {
     ),
   );
   return $types;
-}
+ }
 
 /**
  * Implements hook_field_widget_info()
@@ -172,7 +172,7 @@ function cors_file_element_info() {
  * @return array
  *  An array describing the widget types implemented by the module.
  */
-function cors_file_field_widget_info() {
+ function cors_file_field_widget_info() {
 
   return array(
     'cors_file' => array(
@@ -185,7 +185,7 @@ function cors_file_field_widget_info() {
       'weight' => 999,
     ),
   );
-}
+ }
 
 /**
  * Implements hook_form_alter()
@@ -200,7 +200,7 @@ function cors_file_field_widget_info() {
  * @param $form_id
  *  String representing the name of the form itself.
  */
-function cors_file_form_alter(&$form, $form_state, $form_id) {
+ function cors_file_form_alter(&$form, $form_state, $form_id) {
 
   //this alteration should encompass the field settings form and the field edit form
   if (($form_id == 'field_ui_field_settings_form' && $form['field']['type']['#value'] == 'file') ||
@@ -243,7 +243,7 @@ function cors_file_form_alter(&$form, $form_state, $form_id) {
       $form['#submit'][1] = 'cors_file_custom_field_settings_submit';
     }
   }
-}
+ }
 
 /**
  * Custom form submission function
@@ -255,7 +255,7 @@ function cors_file_form_alter(&$form, $form_state, $form_id) {
  * @param $form_state
  *  The reference to form state being submitted
  */
-function cors_file_custom_field_settings_submit(&$form, &$form_state){
+ function cors_file_custom_field_settings_submit(&$form, &$form_state){
 
   //ensure we are dealing with the correct conditions before altering values
   if (isset($form_state['values']['field']['settings']['uri_scheme']) &&
@@ -263,7 +263,7 @@ function cors_file_custom_field_settings_submit(&$form, &$form_state){
     //set default values
     $form_state['values']['field']['cardinality'] = t('1');
   }
-}
+ }
 
 /**
  * Implements hook_field_widget_form()
@@ -291,7 +291,7 @@ function cors_file_custom_field_settings_submit(&$form, &$form_state){
  * @return array
  *  The form elements for a single widget for this field.
  */
-function cors_file_field_widget_form(
+ function cors_file_field_widget_form(
   &$form, &$form_state, $field, $instance,
   $langcode, $items, $delta, $element) {
 
@@ -356,7 +356,7 @@ function cors_file_field_widget_form(
 
   // @TODO Multiple field processing
   return $elements;
-}
+ }
 
 /**
  * This based off of a recipe in the s3fs module and the core file module
@@ -371,7 +371,7 @@ function cors_file_field_widget_form(
  * @param &form
  *  A reference to the form
  */
-function cors_file_upload_process($element, &$form_state, &$form) {
+ function cors_file_upload_process($element, &$form_state, &$form) {
 
   // set default values for values used throughout this function
   $fid = 0;
@@ -527,7 +527,7 @@ function cors_file_upload_process($element, &$form_state, &$form) {
   $element['#suffix'] = '</div>';
 
   return $element;
-}
+ }
 
 /**
  * This is based off of a recipe in the s3fs module and the core file module
@@ -548,7 +548,7 @@ function cors_file_upload_process($element, &$form_state, &$form) {
  * @return array
  *  Contains information about the current or future file
  */
-function cors_file_upload_value(&$element, $input = FALSE, $form_state = NULL) {
+ function cors_file_upload_value(&$element, $input = FALSE, $form_state = NULL) {
 
   global $user;
   $fid = 0;
@@ -588,6 +588,10 @@ function cors_file_upload_value(&$element, $input = FALSE, $form_state = NULL) {
       $filemime = _cors_file_attempt_to_get_mimetype($input['filename']);
     }
 
+    // Normalize a file to remove whitespaces
+    $input['filename'] = str_replace(' ', '_', $input['filename']);
+    $input['filename'] . '.' . $input['upload_extensions'];
+
     // Flag to determine which file method to use - save/update
     $new_file_flag = TRUE;
     // Attempt to determine if the file already exist
@@ -603,6 +607,7 @@ function cors_file_upload_value(&$element, $input = FALSE, $form_state = NULL) {
       $new_file_flag = FALSE;
 
     } else {
+
       // Create a file object
       $file = new stdClass();
       $file->fid = NULL;
@@ -655,7 +660,7 @@ function cors_file_upload_value(&$element, $input = FALSE, $form_state = NULL) {
     }
   }
   return $return;
-}
+ }
 
 
 /**
@@ -677,7 +682,7 @@ function cors_file_upload_value(&$element, $input = FALSE, $form_state = NULL) {
  * @return array
  *  Contains information about the current or future file
  */
-function cors_file_field_widget_value($element, $input = FALSE, $form_state) {
+ function cors_file_field_widget_value($element, $input = FALSE, $form_state) {
 
   if ($input) {
     // If the display field is present make sure its unchecked value is saved.
@@ -697,7 +702,7 @@ function cors_file_field_widget_value($element, $input = FALSE, $form_state) {
     'description' => '',
   );
   return $return;
-}
+ }
 
 /**
  * Implementation of file_managed_file_validate() to validate a managed file
@@ -711,14 +716,14 @@ function cors_file_field_widget_value($element, $input = FALSE, $form_state) {
  * @param &$form_state
  *  The state of the form during validation
  */
-function cors_file_upload_validate(&$element, &$form_state) {
+ function cors_file_upload_validate(&$element, &$form_state) {
 
   // Consolidate the array value of this field to a single FID.
   if (!$element['#extended']) {
     form_set_value($element, $element['fid']['#value'], $form_state);
   }
 
-}
+ }
 
 
 /**
@@ -732,7 +737,7 @@ function cors_file_upload_validate(&$element, &$form_state) {
  * @param &$form_state
  *  The form state array.
  */
-function cors_file_node_validate($node, $form, &$form_state) {
+ function cors_file_node_validate($node, $form, &$form_state) {
 
   // Attempts to validate cors_file fields on the page
   foreach ($form_state['values'] as $key => $value) {
@@ -746,7 +751,7 @@ function cors_file_node_validate($node, $form, &$form_state) {
       }
     }
   }
-}
+ }
 
 /**
  * Callback to remove the triggering element from the form
@@ -760,7 +765,7 @@ function cors_file_node_validate($node, $form, &$form_state) {
  * @return array
  *  Array value of the field minus the button that was juck clicked
  */
-function cors_file_upload_js($form, &$form_state) {
+ function cors_file_upload_js($form, &$form_state) {
 
   // Find the element that triggered the AJAX callback and return it so that it
   // can be replaced.
@@ -769,7 +774,7 @@ function cors_file_upload_js($form, &$form_state) {
   $element = drupal_array_get_nested_value($form, $parents);
 
   return $element;
-}
+ }
 
 
 /**
@@ -783,7 +788,7 @@ function cors_file_upload_js($form, &$form_state) {
  * @param &$form_state
  *  A reference to the state of the form being altered
  */
-function cors_file_upload_remove_submit($form, &$form_state) {
+ function cors_file_upload_remove_submit($form, &$form_state) {
 
   $parents = $form_state['triggering_element']['#array_parents'];
   // Drop the button_key value off the end of the parents array, since we don't need it.
@@ -811,7 +816,7 @@ function cors_file_upload_remove_submit($form, &$form_state) {
   // Set the form to rebuild so that $form is correctly updated in response to
   // processing the file removal.
   $form_state['rebuild'] = TRUE;
-}
+ }
 
 
 
@@ -824,12 +829,12 @@ function cors_file_upload_remove_submit($form, &$form_state) {
  * @param &$form_state
  *  A reference to the state of the form being altered
  */
-function cors_file_upload_submit($form, &$form_state) {
+ function cors_file_upload_submit($form, &$form_state) {
 
   // We choose to always rebuild, to keep the form processing
   // workflow consistent between the two buttons.
   $form_state['rebuild'] = TRUE;
-}
+ }
 
 /**
  * Utility function used to get a token and a temporary endpoint from Rackspace
@@ -842,7 +847,7 @@ function cors_file_upload_submit($form, &$form_state) {
  * @return string
  *  A temporary Rackspace endpoint URL
  */
-function cors_file_get_endpoint($filename, $extension, $upload_directory, $extension_list) {
+ function cors_file_get_endpoint($filename, $extension, $upload_directory, $extension_list) {
 
   // break up the extensions list
   if (strpos($extension_list, ',') != -1) {
@@ -924,7 +929,7 @@ function cors_file_get_endpoint($filename, $extension, $upload_directory, $exten
   } else {
     _cors_file_display_json('error', 'Library could not be loaded');
   }
-}
+ }
 
 /**
  * Utility function to attempt to get the mimetype if one if not defined
@@ -985,7 +990,7 @@ function _cors_file_attempt_to_load_file($filename) {
  * @return string
  *  The type of file that was determined based upon the file name
  */
-function _cors_file_get_extension($filename) {
+ function _cors_file_get_extension($filename) {
 
   // Get the file extension
   $extension = pathinfo($filename);
@@ -1004,4 +1009,4 @@ function _cors_file_get_extension($filename) {
   } else {
     return 'undefined';
   }
-}
+ }
