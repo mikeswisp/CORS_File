@@ -228,8 +228,8 @@ function cors_file_form_alter(&$form, $form_state, $form_id) {
           $form['field']['cardinality']['#disabled'] = TRUE;
           $title = 'Number of values (Locked for CORS File Support)';
           $form['field']['cardinality']['#title'] = t($title);
-          $form['field']['cardinality']['#value'] = t('1');
-          $form['field']['cardinality']['#default_value'] = t('1');
+          $form['field']['cardinality']['#value'] = 1;
+          $form['field']['cardinality']['#default_value'] = 1;
 
         } else {
           //@TODO look at adding more flexible support for other location via this widget
@@ -261,7 +261,7 @@ function cors_file_custom_field_settings_submit(&$form, &$form_state){
   if (isset($form_state['values']['field']['settings']['uri_scheme']) &&
     $form_state['values']['field']['settings']['uri_scheme'] == 'rackspace') {
     //set default values
-    $form_state['values']['field']['cardinality'] = t('1');
+    $form_state['values']['field']['cardinality'] = '1';
   }
 }
 
