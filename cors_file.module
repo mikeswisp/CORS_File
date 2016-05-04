@@ -851,6 +851,12 @@ function cors_file_get_endpoint($filename, $extension, $upload_directory, $exten
     $file_extensions = array($extension_list);
   }
 
+  // Make sure the the uppercase version of the extension is also valid
+  // For example pdf or PDF
+  foreach($file_extensions as $key => $value) {
+    array_push($file_extensions, strtoupper($value));
+  }
+
   //validate the incoming data
   if (empty($filename) || empty($extension)) {
     _cors_file_display_json('error', 'Invalid Arguments');
